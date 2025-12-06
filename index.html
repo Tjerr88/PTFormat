@@ -270,7 +270,7 @@
       color: #6b7280;
       margin-bottom: 0.4rem;
     }
-    /* Tabs for Breathing / FMS / SFMA */
+    /* Tabs Breathing / FMS / SFMA */
     .tabs {
       display: flex;
       gap: 0.4rem;
@@ -302,20 +302,21 @@
   <header>
     <div>
       <h1>FMS PT Session Generator</h1>
-      <span>Built for kettlebell PT · FMS-based exercise logic · v0.6</span>
+      <span>Built for kettlebell PT · FMS + Breathing logic · v0.9</span>
     </div>
     <button class="btn small" id="clearStorageBtn">Reset alle data</button>
   </header>
 
   <main>
     <div class="stack">
+      <!-- CLIENT / SETTINGS -->
       <section class="card">
         <div class="card-header-row">
           <div>
             <p class="section-label">Instellingen</p>
             <h2 class="card-title">Cliënt &amp; assessmentprofiel</h2>
             <p class="card-subtitle">
-              Kies een cliënt, vul Breathing, FMS en later SFMA in. Klap daarna dicht tijdens de sessie.
+              Kies een cliënt, vul Breathing, FMS en SFMA in. Klap daarna dicht tijdens de sessie.
             </p>
           </div>
           <span class="badge badge-accent" id="activeClientBadge">Geen cliënt geselecteerd</span>
@@ -402,14 +403,13 @@
                 <span class="muted">seconden</span>
               </div>
               <div class="small-note">
-                Deze waardes worden nu opgeslagen per cliënt, maar nog niet gebruikt in de oefenlogica.
+                Deze waardes worden nu gebruikt om een eenvoudige Breathing-status (goed / acceptabel / slecht) te bepalen.
               </div>
             </div>
 
             <!-- FMS tab -->
             <div id="fmsTab" class="tab-panel" style="display:none;">
               <h3 class="section-label" style="margin-top:0.2rem;">FMS scores (testvolgorde)</h3>
-
               <div class="row">
                 <span class="caption">Deep Squat</span>
                 <input type="number" id="fmsDSQ" min="0" max="3" inputmode="numeric" />
@@ -477,7 +477,7 @@
               </div>
 
               <div class="small-note">
-                De oefenlogica gebruikt nog steeds jouw prioriteits-hiërarchie; de testvolgorde hier is alleen voor het afnemen van de FMS.
+                De oefenlogica gebruikt jouw prioriteits-hiërarchie; de testvolgorde hier is alleen voor het afnemen van de FMS.
               </div>
             </div>
 
@@ -569,27 +569,25 @@
                 </div>
               </div>
               <div class="small-note">
-                Deze SFMA-waarden worden al per cliënt opgeslagen, maar nog niet gebruikt in de sessie-logica.
+                SFMA wordt al opgeslagen per cliënt, maar nog niet gebruikt in de oefenlogica.
               </div>
             </div>
 
             <button class="btn primary full" id="saveFmsBtn" style="margin-top:0.6rem;">
               Profiel (Breathing/FMS/SFMA) opslaan voor cliënt
             </button>
-            <div class="small-note">
-              Correctives zijn nog een dummy-regel. Later koppelen we hier je volledige SFMA/FMS-grid en breathing-logica aan.
-            </div>
           </div>
         </div>
       </section>
 
+      <!-- SESSION GENERATOR -->
       <section class="card">
         <div class="card-header-row">
           <div>
             <p class="section-label">Sessie</p>
             <h2 class="card-title">PT sessie-generator</h2>
             <p class="card-subtitle">
-              Corrective → Main (Squat · Hinge · Push · Pull) → Intermediate (acc.) → Advanced (acc.) → Finisher.
+              Corrective (Breathing/FMS) → Main (Squat · Hinge · Push · Pull) → Intermediate → Advanced → Finisher.
             </p>
           </div>
           <span class="badge">Grind main · Ballistic finisher</span>
@@ -599,7 +597,7 @@
 
         <button class="btn primary full" id="generateBtn">Genereer sessie</button>
         <div class="small-note">
-          Oefening-roulatie per cliënt komt later; nu focussen we op FMS-consistente oefeningselectie.
+          Breathing wordt eerst beoordeeld, daarna FMS. De output vertelt je wat primair is.
         </div>
 
         <h3 class="section-label" style="margin-top:0.9rem;">Output</h3>
@@ -609,7 +607,7 @@
   </main>
 
   <script>
-    const STORAGE_KEY = "pt_fms_clients_v06";
+    const STORAGE_KEY = "pt_fms_clients_v09";
 
     function loadClients() {
       try {
@@ -635,6 +633,7 @@
       return "c_" + Math.random().toString(36).slice(2);
     }
 
+    // ---------- Oefeningen ----------
     const EXERCISES = {
       main: [
         { name: "Goblet Squat", pattern: "squat", tags: ["squat","grind","symmetric-load"] },
@@ -743,6 +742,182 @@
       ]
     };
 
+    // ---------- Correctives-library ----------
+    const CORRECTIVES = {
+      ASLR: {
+        pattern: "Straight Leg Raise (ASLR)",
+        focus: "Posterior chain, core sequencing & asymmetrie.",
+        drills: [
+          "Crocodile Breathing",
+          "Leg Lowering",
+          "Half Kneeling Chops",
+          "Single Leg Deadlift"
+        ]
+      },
+      SM: {
+        pattern: "Shoulder Mobility",
+        focus: "Thoracale rotatie, scapulaire stabiliteit & schoudercentratie.",
+        drills: [
+          "Crocodile Breathing",
+          "Rib Grab T-Spine",
+          "Scapular Stability Torsion",
+          "Arm Bar"
+        ]
+      },
+      ANKLE: {
+        pattern: "Ankle Mobility",
+        focus: "Voet- en enkelmobiliteit, dorsiflexie & voetcontrole.",
+        drills: [
+          "1st Ray",
+          "Midfoot",
+          "Ankle",
+          "Open Half Kneeling DF"
+        ]
+      },
+      TSPU: {
+        pattern: "Trunk Stability Push-Up",
+        focus: "Anti-extensie, plankstabiliteit & ribcage control.",
+        drills: [
+          "Crocodile Breathing",
+          "1/2 Kneel Turn",
+          "RNT Push Up",
+          "TGU: Elbow to Tall Sit"
+        ]
+      },
+      RS: {
+        pattern: "Rotary Stability",
+        focus: "Diagonale keten, anti-rotatie & reflexive core.",
+        drills: [
+          "Crocodile Breathing",
+          "Easy Rolls",
+          "Half Kneeling Chop",
+          "TGU: Supine to Elbow"
+        ]
+      },
+      ILL: {
+        pattern: "Inline Lunge",
+        focus: "Split-stance stabiliteit & heup/enkeldynamiek.",
+        drills: [
+          "Ankle Mobility",
+          "Half Kneeling Chops",
+          "1/2 Kneeling Press",
+          "TGU: Half Kneel to Stand"
+        ]
+      },
+      HS: {
+        pattern: "Hurdle Step",
+        focus: "Single-leg stance & heupdisassociatie.",
+        drills: [
+          "Ankle Mobility",
+          "Half Kneeling Chop",
+          "Single Leg Deadlift"
+        ]
+      },
+      DSQ: {
+        pattern: "Deep Squat",
+        focus: "Heup- en enkelmobiliteit & torso-stabiliteit.",
+        drills: [
+          "Ankle Mobility",
+          "Tall Kneeling Turn",
+          "Goblet Squat"
+        ]
+      }
+    };
+
+    const BREATHING_CORRECTIVE = {
+      pattern: "Breathing Restoration",
+      focus: "Prioriteer ademhaling: normaliseer patroon, volume en controle voordat je harder gaat belasten.",
+      drills: [
+        "Crocodile Breathing",
+        "90/90 Wall Breathing",
+        "Box Breathing (3-1-6-2)",
+        "All-Fours Belly Breathing"
+      ]
+    };
+
+    // ---------- Breathing & movement status ----------
+    function computeBreathingStatus(b) {
+      if (!b) return "unknown";
+      let bad = false, acceptable = false, good = false;
+
+      const qs = [b.q1, b.q2, b.q3].filter(v => typeof v === "number");
+      qs.forEach(v => {
+        if (v === 1) bad = true;
+        else if (v === 2) acceptable = true;
+        else if (v === 3) good = true;
+      });
+
+      if (typeof b.frcHold === "number") {
+        if (b.frcHold < 15) bad = true;
+        else if (b.frcHold < 25) acceptable = true;
+        else good = true;
+      }
+      if (typeof b.tlcHold === "number") {
+        if (b.tlcHold < 30) bad = true;
+        else if (b.tlcHold < 50) acceptable = true;
+        else good = true;
+      }
+
+      if (bad) return "bad";
+      if (acceptable) return "acceptable";
+      if (good) return "good";
+      return "unknown";
+    }
+
+    function computeMovementStatus(fms) {
+      const scores = [fms.ASLR, fms.SM, fms.RS, fms.TSPU, fms.ILL, fms.HS, fms.DSQ];
+      const anyBadScore = scores.some(v => typeof v === "number" && v <= 1);
+      const anyAcceptableScore = scores.some(v => typeof v === "number" && v === 2);
+      const anyPain = fms.shoulderPain || fms.tspuPain || fms.rsPain;
+      const ankleRed = fms.ankle === "red";
+      const ankleYellow = fms.ankle === "yellow";
+
+      if (anyPain || anyBadScore || ankleRed) return "bad";
+      if (anyAcceptableScore || ankleYellow) return "acceptable";
+      return "good";
+    }
+
+    function getPrimaryFmsCorrectiveOnly(fms) {
+      const ankleStatus = fms.ankle || "green";
+      const checks = [
+        { key: "ASLR",  active: fms.ASLR <= 1 },
+        { key: "SM",    active: fms.SM <= 1 || fms.shoulderPain },
+        { key: "ANKLE", active: ankleStatus !== "green" },
+        { key: "TSPU",  active: fms.TSPU <= 1 || fms.tspuPain },
+        { key: "RS",    active: fms.RS <= 1 || fms.rsPain },
+        { key: "ILL",   active: fms.ILL <= 1 },
+        { key: "HS",    active: fms.HS <= 1 },
+        { key: "DSQ",   active: fms.DSQ <= 1 }
+      ];
+      for (const c of checks) {
+        if (c.active && CORRECTIVES[c.key]) return CORRECTIVES[c.key];
+      }
+      return null;
+    }
+
+    // combine Breathing + FMS logica zoals in de slide
+    function getPrimaryCorrective(fms, breathing) {
+      const breathingStatus = computeBreathingStatus(breathing);
+      const movementStatus = computeMovementStatus(fms);
+
+      let corrective = null;
+      let breathingSuggestion = null;
+
+      if (breathingStatus === "bad" && (movementStatus === "good" || movementStatus === "acceptable")) {
+        corrective = { ...BREATHING_CORRECTIVE, source: "breathing" };
+      } else {
+        const fmsCorr = getPrimaryFmsCorrectiveOnly(fms);
+        if (fmsCorr) corrective = { ...fmsCorr, source: "fms" };
+
+        if (breathingStatus === "bad" && movementStatus === "bad") {
+          breathingSuggestion = "Ademhaling is suboptimaal (bad). Adresseer breathing tijdens de gekozen correctives.";
+        }
+      }
+
+      return { corrective, breathingStatus, movementStatus, breathingSuggestion };
+    }
+
+    // ---------- Oefening-filters ----------
     function exerciseAllowed(ex, fms) {
       const t = (tag) => ex.tags.includes(tag);
 
@@ -786,11 +961,19 @@
         ILL: Number(f.ILL ?? 3),
         HS: Number(f.HS ?? 3),
         DSQ: Number(f.DSQ ?? 3),
-        shoulderPain: !!f.shoulderPain
+        shoulderPain: !!f.shoulderPain,
+        tspuPain: !!f.tspuPain,
+        rsPain: !!f.rsPain
       };
 
+      const breathing = client.breathing || {};
+      const corrInfo = getPrimaryCorrective(fms, breathing);
+
       const result = {
-        corrective: "Corrective: (dummy placeholder, nog te definiëren op basis van eerste 1-score in FMS-hiërarchie)",
+        corrective: corrInfo.corrective,
+        breathingStatus: corrInfo.breathingStatus,
+        movementStatus: corrInfo.movementStatus,
+        breathingSuggestion: corrInfo.breathingSuggestion,
         main: [],
         intermediate: [],
         advanced: { secondaryPush: null, secondaryPull: null, clubMace: null },
@@ -879,9 +1062,15 @@
         const ex = randomChoice(pool.filter(e => exerciseAllowed(e, fms)));
         result.finisher = { type: chosenType, ex };
       }
+
+      if (result.breathingSuggestion) {
+        result.notes.push(result.breathingSuggestion);
+      }
+
       return result;
     }
 
+    // ---------- DOM refs ----------
     const clientSelect = document.getElementById("clientSelect");
     const addClientBtn = document.getElementById("addClientBtn");
     const newClientRow = document.getElementById("newClientRow");
@@ -926,6 +1115,7 @@
     const settingsPanel = document.getElementById("settingsPanel");
     const assessmentTabs = document.getElementById("assessmentTabs");
 
+    // ---------- Client UI ----------
     function renderClientOptions() {
       const clients = loadClients();
       clientSelect.innerHTML = "";
@@ -936,7 +1126,6 @@
         clientSelect.appendChild(opt);
         activeClientBadge.textContent = "Geen cliënt geselecteerd";
         activeClientBadge.classList.remove("badge-accent");
-        // clear fields
         clearAllAssessmentFields();
         return;
       }
@@ -1094,8 +1283,9 @@
       }, 1500);
     });
 
+    // Settings accordion
     settingsAccordion.addEventListener("click", (e) => {
-      const header = e.target.closest(".accordion-header");
+      const header = e.target.closest(".accordion-header-main");
       if (!header) return;
       const isCollapsed = settingsPanel.classList.contains("collapsed");
       if (isCollapsed) {
@@ -1123,6 +1313,7 @@
       });
     }
 
+    // ---------- Helpers output ----------
     function createAccordionBlock(title, subtitle, initiallyOpen = true) {
       const wrapper = document.createElement("div");
       wrapper.className = "output-block accordion-section";
@@ -1171,11 +1362,57 @@
     function renderSession(session) {
       outputEl.innerHTML = "";
 
+      // Corrective blok
       const corr = document.createElement("div");
       corr.className = "output-block";
-      corr.innerHTML = "<h4>Corrective</h4>" + session.corrective;
+      corr.innerHTML = "<h4>Corrective</h4>";
+
+      const statusLine = document.createElement("div");
+      statusLine.className = "small-note";
+      statusLine.textContent =
+        "Breathing: " + (session.breathingStatus || "n.v.t.") +
+        " · Movement: " + (session.movementStatus || "n.v.t.");
+      corr.appendChild(statusLine);
+
+      if (!session.corrective) {
+        const msg = document.createElement("div");
+        msg.className = "muted";
+        msg.textContent =
+          "Geen duidelijke FMS-prioriteit gevonden. Kies correctives op basis van doel, observaties en breathing-status.";
+        corr.appendChild(msg);
+      } else {
+        const headerLine = document.createElement("div");
+        headerLine.innerHTML = `<span class="pill">${session.corrective.pattern}</span>`;
+        corr.appendChild(headerLine);
+
+        if (session.corrective.focus) {
+          const focus = document.createElement("div");
+          focus.className = "small-note";
+          focus.textContent = session.corrective.focus;
+          corr.appendChild(focus);
+        }
+
+        const list = document.createElement("ul");
+        list.style.margin = "0.45rem 0 0";
+        list.style.paddingLeft = "1.1rem";
+        session.corrective.drills.forEach(name => {
+          const li = document.createElement("li");
+          li.textContent = name;
+          list.appendChild(li);
+        });
+        corr.appendChild(list);
+
+        if (session.corrective.source === "breathing") {
+          const extra = document.createElement("div");
+          extra.className = "small-note";
+          extra.textContent =
+            "Volgens de Breathing-hiërarchie: beweging is voldoende, ademhaling is nu de eerste prioriteit.";
+          corr.appendChild(extra);
+        }
+      }
       outputEl.appendChild(corr);
 
+      // Main
       const main = document.createElement("div");
       main.className = "output-block";
       main.innerHTML = "<h4>Main Circuit</h4>";
@@ -1190,6 +1427,7 @@
       }
       outputEl.appendChild(main);
 
+      // Intermediate
       const intermAcc = createAccordionBlock(
         "Intermediate Circuit",
         "Lunge · Anti-rotatie · Rotatie",
@@ -1209,6 +1447,7 @@
       }
       outputEl.appendChild(intermAcc.wrapper);
 
+      // Advanced
       const advAcc = createAccordionBlock(
         "Advanced Circuit",
         "Secondary Push/Pull + Club/Mace",
@@ -1238,6 +1477,7 @@
       }
       outputEl.appendChild(advAcc.wrapper);
 
+      // Finisher
       const fin = document.createElement("div");
       fin.className = "output-block";
       fin.innerHTML = "<h4>Finisher</h4>";
@@ -1287,6 +1527,7 @@
       outputEl.innerHTML = "";
     });
 
+    // init
     renderClientOptions();
   </script>
 </body>
