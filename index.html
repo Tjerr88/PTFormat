@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FMS PT Session Generator</title>
+  <style>
+    :root { color-scheme: dark; }
+    *,
+    *::before,
+    *::after { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 0;
+      background: radial-gradient(circle at top, #020617 0, #020617 40%, #020617 100%);
+      color: #e5e7eb;
+    }
+    header {
+      background: rgba(15,23,42,0.98);
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #1f2937;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(16px);
+    }
+    @media (max-width: 640px) {
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+      }
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.15rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    header span {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      display: block;
+      margin-top: 0.15rem;
+    }
+    main {
+      padding: 1rem;
+      max-width: 1120px;
+      margin: 0 auto 3rem;
+    }
+    .stack {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .card {
+      background: radial-gradient(circle at top left, rgba(15,23,42,0.95), #020617);
+      border-radius: 1rem;
+      border: 1px solid #1f2937;
+      padding: 0.9rem 0.9rem 1rem;
+      box-shadow: 0 18px 35px rgba(0,0,0,0.45);
+    }
+    @media (max-width: 640px) {
+      .card { padding: 0.8rem 0.8rem 0.9rem; }
+    }
+    .card-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0.5rem;
+      margin-bottom: 0.4rem;
+    }
+    .card-title {
+      margin: 0;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .card-subtitle {
+      font-size: 0.78rem;
+      color: #9ca3af;
+      margin-top: 0.15rem;
+    }
+    label {
+      font-size: 0.8rem;
+      color: #e5e7eb;
+    }
+    input[type="text"],
+    select {
+      width: 100%;
+      padding: 0.45rem 0.6rem;
+      border-radius: 0.6rem;
+      border: 1px solid #1f2937;
+      background: #020617;
+      color: #e5e7eb;
+      font-size: 0.85rem;
+    }
+    input[type="number"] {
+      width: 3.2rem;
+      padding: 0.32rem 0.4rem;
+      border-radius: 0.6rem;
+      border: 1px solid #1f2937;
+      background: #020617;
+      color: #e5e7eb;
+      font-size: 0.85rem;
+      text-align: center;
+    }
+    input:focus,
+    select:focus {
+      outline: 2px solid #22c55e55;
+      outline-offset: 1px;
+      border-color: #22c55e;
+    }
+    .row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 0.4rem;
+    }
+    .row span.caption {
+      font-size: 0.78rem;
+      color: #9ca3af;
+      min-width: 120px;
+    }
+    @media (max-width: 480px) {
+      .row span.caption { min-width: 96px; }
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      border: 1px solid #4b5563;
+      background: #111827;
+      color: #e5e7eb;
+      padding: 0.4rem 1rem;
+      font-size: 0.85rem;
+      cursor: pointer;
+      gap: 0.3rem;
+      min-height: 2.25rem;
+      touch-action: manipulation;
+    }
+    .btn.primary {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      border-color: transparent;
+      color: #022c22;
+      font-weight: 600;
+      box-shadow: 0 8px 18px rgba(34,197,94,0.35);
+    }
+    .btn.small {
+      padding: 0.3rem 0.75rem;
+      font-size: 0.8rem;
+      min-height: 2rem;
+    }
+    @media (max-width: 640px) {
+      .btn.full {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+    .btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.45);
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      border: 1px solid #374151;
+      padding: 0 0.55rem;
+      font-size: 0.7rem;
+      color: #9ca3af;
+      gap: 0.25rem;
+      white-space: nowrap;
+    }
+    .badge-accent {
+      border-color: #22c55e55;
+      color: #bbf7d0;
+      background: rgba(34,197,94,0.08);
+    }
+    .output-block {
+      font-size: 0.9rem;
+      line-height: 1.6;
+      border-radius: 0.9rem;
+      border: 1px solid #111827;
+      padding: 0.75rem 0.85rem;
+      background: radial-gradient(circle at top left, rgba(15,23,42,1), #020617);
+      margin-bottom: 0.6rem;
+    }
+    .output-block h4 {
+      margin: 0 0 0.35rem;
+      font-size: 0.92rem;
+      color: #e5e7eb;
+    }
+    .muted {
+      color: #6b7280;
+      font-size: 0.8rem;
+    }
+    .pill {
+      display: inline-block;
+      padding: 0.14rem 0.55rem;
+      background: #020617;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      border: 1px solid #1f2937;
+      margin-right: 0.3rem;
+      margin-bottom: 0.15rem;
+      color: #9ca3af;
+    }
+    .small-note {
+      font-size: 0.75rem;
+      color: #6b7280;
+      margin-top: 0.45rem;
+    }
+    .accordion-header {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.45rem 0.5rem;
+      background: transparent;
+      border: none;
+      color: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+    .accordion-header-main {
+      padding-left: 0;
+      padding-right: 0;
+    }
+    .accordion-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .accordion-subtitle {
+      font-size: 0.8rem;
+      color: #6b7280;
+    }
+    .chevron {
+      font-size: 0.9rem;
+      transition: transform 0.18s ease-out;
+    }
+    .accordion-panel { margin-top: 0.3rem; }
+    .accordion-panel.collapsed { display: none; }
+    .accordion.collapsed .chevron { transform: rotate(-90deg); }
+    .divider {
+      height: 1px;
+      background: linear-gradient(to right, transparent, #1f2937, transparent);
+      margin: 0.5rem 0 0.75rem;
+    }
+    .section-label {
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #6b7280;
+      margin-bottom: 0.4rem;
+    }
+    /* Tabs for Breathing / FMS / SFMA */
+    .tabs {
+      display: flex;
+      gap: 0.4rem;
+      border-bottom: 1px solid #111827;
+      margin: 0.4rem 0 0.5rem;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      border: none;
+      background: transparent;
+      color: #9ca3af;
+      font-size: 0.8rem;
+      padding: 0.3rem 0.7rem;
+      border-radius: 999px 999px 0 0;
+      cursor: pointer;
+    }
+    .tab-btn.active {
+      color: #e5e7eb;
+      background: #020617;
+      border: 1px solid #111827;
+      border-bottom-color: #020617;
+    }
+    .tab-panel {
+      margin-top: 0.45rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>FMS PT Session Generator</h1>
+      <span>Built for kettlebell PT · FMS-based exercise logic · v0.6</span>
+    </div>
+    <button class="btn small" id="clearStorageBtn">Reset alle data</button>
+  </header>
+
+  <main>
+    <div class="stack">
+      <section class="card">
+        <div class="card-header-row">
+          <div>
+            <p class="section-label">Instellingen</p>
+            <h2 class="card-title">Cliënt &amp; assessmentprofiel</h2>
+            <p class="card-subtitle">
+              Kies een cliënt, vul Breathing, FMS en later SFMA in. Klap daarna dicht tijdens de sessie.
+            </p>
+          </div>
+          <span class="badge badge-accent" id="activeClientBadge">Geen cliënt geselecteerd</span>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="accordion" id="settingsAccordion">
+          <button class="accordion-header accordion-header-main" type="button">
+            <div>
+              <div class="accordion-title">Cliënt, Breathing, FMS &amp; SFMA</div>
+              <div class="accordion-subtitle">Tap om te tonen/verbergen tijdens een sessie.</div>
+            </div>
+            <span class="chevron">▾</span>
+          </button>
+          <div class="accordion-panel" id="settingsPanel">
+            <!-- Client selectie -->
+            <div class="row" style="margin-bottom:0.6rem;">
+              <span class="caption">Cliënt</span>
+              <div style="flex:1; min-width:140px;">
+                <select id="clientSelect"></select>
+              </div>
+              <button class="btn small" id="addClientBtn">+ nieuw</button>
+            </div>
+            <div id="newClientRow" class="row" style="display:none;margin-bottom:0.8rem;">
+              <span class="caption">Naam</span>
+              <div style="flex:1; min-width:140px;">
+                <input type="text" id="newClientName" placeholder="Naam cliënt..." />
+              </div>
+              <button class="btn small" id="saveClientBtn">Opslaan</button>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs" id="assessmentTabs">
+              <button type="button" class="tab-btn active" data-tab-target="breathingTab">Breathing</button>
+              <button type="button" class="tab-btn" data-tab-target="fmsTab">FMS</button>
+              <button type="button" class="tab-btn" data-tab-target="sfmaTab">SFMA</button>
+            </div>
+
+            <!-- Breathing tab -->
+            <div id="breathingTab" class="tab-panel">
+              <h3 class="section-label" style="margin-top:0.2rem;">Breathing screen</h3>
+              <div class="row">
+                <span class="caption">Vraag 1</span>
+                <div style="flex:1; min-width:120px;">
+                  <select id="breathQ1">
+                    <option value="">-</option>
+                    <option value="1">1 (slechter)</option>
+                    <option value="2">2 (matig)</option>
+                    <option value="3">3 (goed)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="row">
+                <span class="caption">Vraag 2</span>
+                <div style="flex:1; min-width:120px;">
+                  <select id="breathQ2">
+                    <option value="">-</option>
+                    <option value="1">1 (slechter)</option>
+                    <option value="2">2 (matig)</option>
+                    <option value="3">3 (goed)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="row">
+                <span class="caption">Vraag 3</span>
+                <div style="flex:1; min-width:120px;">
+                  <select id="breathQ3">
+                    <option value="">-</option>
+                    <option value="1">1 (slechter)</option>
+                    <option value="2">2 (matig)</option>
+                    <option value="3">3 (goed)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="row">
+                <span class="caption">FRC breath hold</span>
+                <input type="number" id="breathFRC" min="0" inputmode="numeric" />
+                <span class="muted">seconden</span>
+              </div>
+              <div class="row">
+                <span class="caption">TLC breath hold</span>
+                <input type="number" id="breathTLC" min="0" inputmode="numeric" />
+                <span class="muted">seconden</span>
+              </div>
+              <div class="small-note">
+                Deze waardes worden nu opgeslagen per cliënt, maar nog niet gebruikt in de oefenlogica.
+              </div>
+            </div>
+
+            <!-- FMS tab -->
+            <div id="fmsTab" class="tab-panel" style="display:none;">
+              <h3 class="section-label" style="margin-top:0.2rem;">FMS scores (testvolgorde)</h3>
+
+              <div class="row">
+                <span class="caption">Deep Squat</span>
+                <input type="number" id="fmsDSQ" min="0" max="3" inputmode="numeric" />
+                <span class="muted">0–3</span>
+              </div>
+              <div class="row">
+                <span class="caption">Hurdle Step</span>
+                <input type="number" id="fmsHS" min="0" max="3" inputmode="numeric" />
+                <span class="muted">0–3</span>
+                <span class="muted">Onderbeenhoogte (cm)</span>
+                <input type="number" id="hsHeight" min="0" inputmode="numeric" style="width:3.5rem;" />
+              </div>
+              <div class="row">
+                <span class="caption">Inline Lunge</span>
+                <input type="number" id="fmsILL" min="0" max="3" inputmode="numeric" />
+                <span class="muted">0–3</span>
+              </div>
+              <div class="row">
+                <span class="caption">Ankle mobility</span>
+                <div style="flex:1; min-width:120px;">
+                  <select id="fmsAnkle">
+                    <option value="green">Groen</option>
+                    <option value="yellow">Geel</option>
+                    <option value="red">Rood</option>
+                  </select>
+                </div>
+                <span class="muted">afstand (cm)</span>
+                <input type="number" id="ankleCm" min="0" inputmode="numeric" style="width:3.5rem;" />
+              </div>
+              <div class="row">
+                <span class="caption">Shoulder Mobility</span>
+                <input type="number" id="fmsSM" min="0" max="3" inputmode="numeric" />
+                <span class="muted">0–3</span>
+                <span class="muted">Handlengte (cm)</span>
+                <input type="number" id="handLength" min="0" inputmode="numeric" style="width:3.5rem;" />
+              </div>
+              <div class="row">
+                <label>
+                  <input type="checkbox" id="shoulderPain" />
+                  Shoulder pain-provocatie positief
+                </label>
+              </div>
+              <div class="row">
+                <span class="caption">ASLR</span>
+                <input type="number" id="fmsASLR" min="0" max="3" inputmode="numeric" />
+                <span class="muted">0–3</span>
+              </div>
+              <div class="row">
+                <span class="caption">TSPU</span>
+                <input type="number" id="fmsTSPU" min="0" max="3" inputmode="numeric" />
+                <span class="muted">0–3</span>
+                <label style="display:flex;align-items:center;gap:0.25rem;">
+                  <input type="checkbox" id="tspuPain" />
+                  pijn-provocatie +
+                </label>
+              </div>
+              <div class="row">
+                <span class="caption">Rotary Stability</span>
+                <input type="number" id="fmsRS" min="0" max="3" inputmode="numeric" />
+                <span class="muted">0–3</span>
+                <label style="display:flex;align-items:center;gap:0.25rem;">
+                  <input type="checkbox" id="rsPain" />
+                  pijn-provocatie +
+                </label>
+              </div>
+
+              <div class="small-note">
+                De oefenlogica gebruikt nog steeds jouw prioriteits-hiërarchie; de testvolgorde hier is alleen voor het afnemen van de FMS.
+              </div>
+            </div>
+
+            <!-- SFMA tab -->
+            <div id="sfmaTab" class="tab-panel" style="display:none;">
+              <h3 class="section-label" style="margin-top:0.2rem;">SFMA top-tier (placeholder)</h3>
+              <div class="row">
+                <span class="caption">Cervical (flex/ext/rot)</span>
+                <div style="flex:1; min-width:120px;">
+                  <select id="sfmaCSpine">
+                    <option value="">-</option>
+                    <option value="FN">FN</option>
+                    <option value="FP">FP</option>
+                    <option value="DN">DN</option>
+                    <option value="DP">DP</option>
+                  </select>
+                </div>
+              </div>
+              <div class="row">
+                <span class="caption">Upper Extremity</span>
+                <div style="flex:1; min-width:120px;">
+                  <select id="sfmaUE">
+                    <option value="">-</option>
+                    <option value="FN">FN</option>
+                    <option value="FP">FP</option>
+                    <option value="DN">DN</option>
+                    <option value="DP">DP</option>
+                  </select>
+                </div>
+              </div>
+              <div class="row">
+                <span class="caption">Multi-seg. flexie</span>
+                <div style="flex:1; min-width:120px;">
+                  <select id="sfmaFlex">
+                    <option value="">-</option>
+                    <option value="FN">FN</option>
+                    <option value="FP">FP</option>
+                    <option value="DN">DN</option>
+                    <option value="DP">DP</option>
+                  </select>
+                </div>
+              </div>
+              <div class="row">
+                <span class="caption">Multi-seg. extensie</span>
+                <div style="flex:1; min-width:120px;">
+                  <select id="sfmaExt">
+                    <option value="">-</option>
+                    <option value="FN">FN</option>
+                    <option value="FP">FP</option>
+                    <option value="DN">DN</option>
+                    <option value="DP">DP</option>
+                  </select>
+                </div>
+              </div>
+              <div class="row">
+                <span class="caption">Multi-seg. rotatie</span>
+                <div style="flex:1; min-width:120px;">
+                  <select id="sfmaRot">
+                    <option value="">-</option>
+                    <option value="FN">FN</option>
+                    <option value="FP">FP</option>
+                    <option value="DN">DN</option>
+                    <option value="DP">DP</option>
+                  </select>
+                </div>
+              </div>
+              <div class="row">
+                <span class="caption">Single-leg stance</span>
+                <div style="flex:1; min-width:120px;">
+                  <select id="sfmaSingle">
+                    <option value="">-</option>
+                    <option value="FN">FN</option>
+                    <option value="FP">FP</option>
+                    <option value="DN">DN</option>
+                    <option value="DP">DP</option>
+                  </select>
+                </div>
+              </div>
+              <div class="row">
+                <span class="caption">Overhead Deep Squat</span>
+                <div style="flex:1; min-width:120px;">
+                  <select id="sfmaDeep">
+                    <option value="">-</option>
+                    <option value="FN">FN</option>
+                    <option value="FP">FP</option>
+                    <option value="DN">DN</option>
+                    <option value="DP">DP</option>
+                  </select>
+                </div>
+              </div>
+              <div class="small-note">
+                Deze SFMA-waarden worden al per cliënt opgeslagen, maar nog niet gebruikt in de sessie-logica.
+              </div>
+            </div>
+
+            <button class="btn primary full" id="saveFmsBtn" style="margin-top:0.6rem;">
+              Profiel (Breathing/FMS/SFMA) opslaan voor cliënt
+            </button>
+            <div class="small-note">
+              Correctives zijn nog een dummy-regel. Later koppelen we hier je volledige SFMA/FMS-grid en breathing-logica aan.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header-row">
+          <div>
+            <p class="section-label">Sessie</p>
+            <h2 class="card-title">PT sessie-generator</h2>
+            <p class="card-subtitle">
+              Corrective → Main (Squat · Hinge · Push · Pull) → Intermediate (acc.) → Advanced (acc.) → Finisher.
+            </p>
+          </div>
+          <span class="badge">Grind main · Ballistic finisher</span>
+        </div>
+
+        <div class="divider"></div>
+
+        <button class="btn primary full" id="generateBtn">Genereer sessie</button>
+        <div class="small-note">
+          Oefening-roulatie per cliënt komt later; nu focussen we op FMS-consistente oefeningselectie.
+        </div>
+
+        <h3 class="section-label" style="margin-top:0.9rem;">Output</h3>
+        <div id="output"></div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "pt_fms_clients_v06";
+
+    function loadClients() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return [];
+        return JSON.parse(raw);
+      } catch (_) { return []; }
+    }
+    function saveClients(clients) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(clients));
+    }
+    function upsertClient(client) {
+      const clients = loadClients();
+      const idx = clients.findIndex(c => c.id === client.id);
+      if (idx >= 0) clients[idx] = client;
+      else clients.push(client);
+      saveClients(clients);
+    }
+    function getClientById(id) {
+      return loadClients().find(c => c.id === id) || null;
+    }
+    function uid() {
+      return "c_" + Math.random().toString(36).slice(2);
+    }
+
+    const EXERCISES = {
+      main: [
+        { name: "Goblet Squat", pattern: "squat", tags: ["squat","grind","symmetric-load"] },
+        { name: "Double Rack Front Squat", pattern: "squat", tags: ["squat","grind","symmetric-load"] },
+        { name: "Single Rack Front Squat", pattern: "squat", tags: ["squat","grind","asymmetric-load"] },
+        { name: "B-Stance Squat (Goblet)", pattern: "squat", tags: ["squat","grind","b-stance","symmetric-load"] },
+        { name: "Box Pistol Squat (Goblet)", pattern: "squat", tags: ["squat","grind","single-leg","symmetric-load"] },
+        { name: "Step-Up (Goblet)", pattern: "squat", tags: ["squat","grind","single-leg","symmetric-load"] },
+
+        { name: "Conventional Deadlift (2H Single Bell)", pattern: "hinge", tags: ["hinge","grind","hinge-based","symmetric-load"] },
+        { name: "Double KB Deadlift", pattern: "hinge", tags: ["hinge","grind","hinge-based","symmetric-load"] },
+        { name: "Goodmorning (KB Backload)", pattern: "hinge", tags: ["hinge","grind","hinge-based","symmetric-load"] },
+        { name: "Single-Leg Deadlift (2H Single Bell)", pattern: "hinge", tags: ["hinge","grind","hinge-based","single-leg","symmetric-load"] },
+        { name: "Hip Thrust (Double KB)", pattern: "hinge", tags: ["hinge","grind","hinge-based","symmetric-load"] },
+        { name: "Glute Bridge (Double KB)", pattern: "hinge", tags: ["hinge","grind","hinge-based","symmetric-load"] },
+
+        { name: "Double KB Military Press", pattern: "push", tags: ["push","vertical","grind","symmetric-load"] },
+        { name: "Single KB Military Press", pattern: "push", tags: ["push","vertical","grind","asymmetric-load"] },
+        { name: "Single KB Half-Kneeling Press", pattern: "push", tags: ["push","vertical","grind","asymmetric-load","half-kneeling"] },
+        { name: "Single KB Tall-Kneeling Press", pattern: "push", tags: ["push","vertical","grind","asymmetric-load","tall-kneeling"] },
+        { name: "Double KB Floor Press", pattern: "push", tags: ["push","horizontal","grind","symmetric-load"] },
+        { name: "Single KB Floor Press", pattern: "push", tags: ["push","horizontal","grind","asymmetric-load"] },
+        { name: "Double KB Bridge Floor Press", pattern: "push", tags: ["push","horizontal","grind","symmetric-load"] },
+
+        { name: "Pull-Up", pattern: "pull", tags: ["pull","vertical","grind","symmetric-load"] },
+        { name: "Chin-Up", pattern: "pull", tags: ["pull","vertical","grind","symmetric-load"] },
+        { name: "KB Pullover", pattern: "pull", tags: ["pull","vertical","grind","symmetric-load"] },
+        { name: "Double KB Bent-Over Row", pattern: "pull", tags: ["pull","horizontal","grind","hinge-based","symmetric-load"] },
+        { name: "Single KB Bent-Over Row", pattern: "pull", tags: ["pull","horizontal","grind","hinge-based","asymmetric-load"] },
+        { name: "Double Gorilla Row", pattern: "pull", tags: ["pull","horizontal","grind","hinge-based","symmetric-load"] },
+        { name: "Gorilla Row (Alternating)", pattern: "pull", tags: ["pull","horizontal","grind","hinge-based","asymmetric-load"] },
+        { name: "Staggered KB Row (Supported)", pattern: "pull", tags: ["pull","horizontal","grind","supported","asymmetric-load"] }
+      ],
+
+      intermediate: [
+        { name: "Front Walking Lunge (Goblet)", pattern: "lunge", tags: ["lunge","grind","symmetric-load"] },
+        { name: "Front Walking Lunge (Single Rack)", pattern: "lunge", tags: ["lunge","grind","asymmetric-load"] },
+        { name: "Front Walking Lunge (Double Rack)", pattern: "lunge", tags: ["lunge","grind","symmetric-load"] },
+        { name: "Reverse Lunge (Goblet)", pattern: "lunge", tags: ["lunge","grind","symmetric-load"] },
+        { name: "Side Lunge (Goblet)", pattern: "lunge", tags: ["lunge","grind","symmetric-load"] },
+        { name: "Curtsy Lunge (Goblet)", pattern: "lunge", tags: ["lunge","grind","symmetric-load"] },
+        { name: "Front Walking Lunge (Single Overhead)", pattern: "lunge", tags: ["lunge","grind","overhead","asymmetric-load"] },
+        { name: "Athletic Reverse Lunge + Clean", pattern: "lunge", tags: ["lunge","ballistic","asymmetric-load","hinge-based"] },
+
+        { name: "Plank Pull-Through", pattern: "anti-rotation", tags: ["anti-rotation","grind","asymmetric-load"] },
+        { name: "Bird-Dog Pull-Through", pattern: "anti-rotation", tags: ["anti-rotation","grind","asymmetric-load"] },
+        { name: "Half-Kneeling Chop", pattern: "anti-rotation", tags: ["anti-rotation","grind","asymmetric-load"] },
+        { name: "Half-Kneeling Lift", pattern: "anti-rotation", tags: ["anti-rotation","grind","asymmetric-load"] },
+        { name: "Shoulder Tap Plank", pattern: "anti-rotation", tags: ["anti-rotation","grind","asymmetric-load"] },
+        { name: "Bear Crawl", pattern: "anti-rotation", tags: ["anti-rotation","grind","asymmetric-load"] },
+        { name: "Hardstyle Plank", pattern: "anti-rotation", tags: ["anti-rotation","grind"] },
+        { name: "KB Pallof Press (Rack)", pattern: "anti-rotation", tags: ["anti-rotation","grind","asymmetric-load"] },
+        { name: "Around-the-World (Grind)", pattern: "anti-rotation", tags: ["anti-rotation","grind","asymmetric-load"] },
+
+        { name: "Bottom-Loaded Windmill", pattern: "rotation", tags: ["rotation","grind","hinge-based","asymmetric-load"] },
+        { name: "Top-Loaded Windmill", pattern: "rotation", tags: ["rotation","grind","hinge-based","overhead","asymmetric-load"] },
+        { name: "Bent Press", pattern: "rotation", tags: ["rotation","grind","overhead","asymmetric-load"] },
+        { name: "Russian Twist", pattern: "rotation", tags: ["rotation","grind","asymmetric-load"] },
+        { name: "Figure 8", pattern: "rotation", tags: ["rotation","ballistic","asymmetric-load"] },
+        { name: "Side Swing", pattern: "rotation", tags: ["rotation","ballistic","asymmetric-load"] },
+        { name: "Rotational Clean", pattern: "rotation", tags: ["rotation","ballistic","asymmetric-load","hinge-based"] }
+      ],
+
+      advanced: [
+        { name: "Club 360", pattern: "club-mace", tags: ["club-mace","grind","overhead","asymmetric-load"] },
+        { name: "Club 10-2", pattern: "club-mace", tags: ["club-mace","grind","overhead","asymmetric-load"] },
+        { name: "Barbarian Squat", pattern: "club-mace", tags: ["club-mace","grind","asymmetric-load"] },
+        { name: "Dynamic Switch", pattern: "club-mace", tags: ["club-mace","grind","asymmetric-load"] },
+        { name: "In & Out Mills", pattern: "club-mace", tags: ["club-mace","grind","asymmetric-load","overhead"] },
+        { name: "Shield Cast", pattern: "club-mace", tags: ["club-mace","grind","overhead","asymmetric-load"] },
+        { name: "Swipe", pattern: "club-mace", tags: ["club-mace","grind","overhead","asymmetric-load"] }
+      ],
+
+      finishersA: [
+        { name: "One-Arm Swing", pattern: "finisherA", tags: ["finisherA","ballistic","ballistic-hinge","hinge-based","asymmetric-load"] },
+        { name: "Two-Arm Swing", pattern: "finisherA", tags: ["finisherA","ballistic","ballistic-hinge","hinge-based","symmetric-load"] },
+        { name: "Hand-to-Hand Swing", pattern: "finisherA", tags: ["finisherA","ballistic","ballistic-hinge","hinge-based","asymmetric-load"] },
+        { name: "Snatch", pattern: "finisherA", tags: ["finisherA","ballistic","ballistic-hinge","hinge-based","asymmetric-load"] },
+        { name: "Double Snatch", pattern: "finisherA", tags: ["finisherA","ballistic","ballistic-hinge","hinge-based","symmetric-load"] },
+        { name: "Double Swing", pattern: "finisherA", tags: ["finisherA","ballistic","ballistic-hinge","hinge-based","symmetric-load"] },
+        { name: "Low Pull Snatch", pattern: "finisherA", tags: ["finisherA","ballistic","ballistic-hinge","hinge-based","asymmetric-load"] }
+      ],
+
+      finishersB: [
+        { name: "Single KB Push Press", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","asymmetric-load"] },
+        { name: "Double KB Push Press", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","symmetric-load"] },
+        { name: "Single KB Viking Push Press", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","asymmetric-load"] },
+        { name: "Double KB Viking Push Press", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","symmetric-load"] },
+        { name: "Single KB Clean & Push Press", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","asymmetric-load","hinge-based"] },
+        { name: "Double KB Clean & Push Press", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","symmetric-load","hinge-based"] },
+        { name: "Single KB Push Jerk", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","asymmetric-load"] },
+        { name: "Double KB Push Jerk", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","symmetric-load"] },
+        { name: "Single KB Clean & Jerk", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","asymmetric-load","hinge-based"] },
+        { name: "Double KB Clean & Jerk", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","symmetric-load","hinge-based"] }
+      ],
+
+      finishersC: [
+        { name: "Single Suitcase Carry", pattern: "finisherC", tags: ["finisherC","carry","asymmetric-load"] },
+        { name: "Double Suitcase Carry", pattern: "finisherC", tags: ["finisherC","carry","symmetric-load"] },
+        { name: "Single Front Rack Carry", pattern: "finisherC", tags: ["finisherC","carry","asymmetric-load"] },
+        { name: "Double Front Rack Carry", pattern: "finisherC", tags: ["finisherC","carry","symmetric-load"] },
+        { name: "Single Overhead Carry", pattern: "finisherC", tags: ["finisherC","carry","overhead","asymmetric-load"] },
+        { name: "Double Overhead Carry", pattern: "finisherC", tags: ["finisherC","carry","overhead","symmetric-load"] },
+        { name: "Cook Drill", pattern: "finisherC", tags: ["finisherC","carry","overhead","asymmetric-load"] },
+        { name: "Uneven Overhead + Suitcase Carry", pattern: "finisherC", tags: ["finisherC","carry","overhead","asymmetric-load"] }
+      ]
+    };
+
+    function exerciseAllowed(ex, fms) {
+      const t = (tag) => ex.tags.includes(tag);
+
+      if (fms.shoulderPain && ex.pattern === "push") return false;
+      if (t("squat") && fms.DSQ <= 1) return false;
+      if (t("hinge-based") && fms.ASLR <= 1) return false;
+      if (t("single-leg") && fms.HS <= 1) return false;
+      if (t("lunge") && fms.ILL <= 1) return false;
+      if ((t("rotation") || t("anti-rotation")) && fms.RS <= 1) return false;
+      if (t("asymmetric-load") && fms.RS <= 1) return false;
+      if ((t("vertical") || t("overhead")) && (t("push") || t("pull") || t("club-mace") || t("finisherB") || t("carry"))) {
+        if (fms.SM <= 1) return false;
+      }
+      if (t("overhead") && fms.SM <= 1) return false;
+      if (t("ballistic") && fms.TSPU <= 1) return false;
+      if (t("ballistic-hinge") && fms.ASLR <= 1) return false;
+      if (t("pushup") && fms.TSPU <= 1) return false;
+      if (t("pull") && t("vertical") && fms.SM <= 1) return false;
+      if (t("pull") && t("horizontal") && t("hinge-based") && fms.ASLR <= 1) return false;
+      if (t("finisherB")) {
+        if (fms.SM <= 1 || fms.TSPU <= 1) return false;
+        if (t("hinge-based") && fms.ASLR <= 1) return false;
+      }
+      return true;
+    }
+
+    function randomChoice(arr) {
+      if (!arr.length) return null;
+      const idx = Math.floor(Math.random() * arr.length);
+      return arr[idx];
+    }
+
+    function generateSessionForClient(client) {
+      const f = client.fms || {};
+      const fms = {
+        ASLR: Number(f.ASLR ?? 3),
+        SM: Number(f.SM ?? 3),
+        ankle: f.ankle || "green",
+        RS: Number(f.RS ?? 3),
+        TSPU: Number(f.TSPU ?? 3),
+        ILL: Number(f.ILL ?? 3),
+        HS: Number(f.HS ?? 3),
+        DSQ: Number(f.DSQ ?? 3),
+        shoulderPain: !!f.shoulderPain
+      };
+
+      const result = {
+        corrective: "Corrective: (dummy placeholder, nog te definiëren op basis van eerste 1-score in FMS-hiërarchie)",
+        main: [],
+        intermediate: [],
+        advanced: { secondaryPush: null, secondaryPull: null, clubMace: null },
+        finisher: null,
+        notes: []
+      };
+
+      const mainPool = EXERCISES.main.filter(ex => exerciseAllowed(ex, fms));
+      function pickByPattern(pattern) {
+        const pool = mainPool.filter(ex => ex.pattern === pattern);
+        return randomChoice(pool);
+      }
+
+      const squatEx = pickByPattern("squat");
+      const hingeEx = pickByPattern("hinge");
+      const pushEx = pickByPattern("push");
+      const pullEx = pickByPattern("pull");
+
+      if (squatEx) result.main.push({ slot: "Squat", ex: squatEx });
+      if (hingeEx) result.main.push({ slot: "Hinge", ex: hingeEx });
+      if (pushEx) result.main.push({ slot: "Push", ex: pushEx });
+      if (pullEx) result.main.push({ slot: "Pull", ex: pullEx });
+
+      if (!squatEx) result.notes.push("Geen squat beschikbaar (mogelijk DSQ ≤ 1).");
+      if (!hingeEx) result.notes.push("Geen hinge beschikbaar (mogelijk ASLR ≤ 1).");
+      if (!pushEx) result.notes.push("Geen push beschikbaar (shoulder pain of SM/FMS restricties).");
+      if (!pullEx) result.notes.push("Geen pull beschikbaar (SM/ASLR restricties).");
+
+      const intermPool = EXERCISES.intermediate.filter(ex => exerciseAllowed(ex, fms));
+      const lunge = randomChoice(intermPool.filter(ex => ex.pattern === "lunge"));
+      const antiRot = randomChoice(intermPool.filter(ex => ex.pattern === "anti-rotation"));
+      const rot = randomChoice(intermPool.filter(ex => ex.pattern === "rotation"));
+
+      if (lunge) result.intermediate.push({ slot: "Lunge", ex: lunge });
+      if (antiRot) result.intermediate.push({ slot: "Anti-rotatie", ex: antiRot });
+      if (rot) result.intermediate.push({ slot: "Rotatie", ex: rot });
+
+      if (!lunge && fms.ILL <= 1) result.notes.push("Lunge-patroon geblokkeerd (Inline Lunge ≤ 1).");
+      if (!antiRot && fms.RS <= 1) result.notes.push("Anti-rotatie geblokkeerd (RS ≤ 1).");
+      if (!rot && fms.RS <= 1) result.notes.push("Rotatie geblokkeerd (RS ≤ 1).");
+
+      if (fms.SM > 1 && pushEx) {
+        const mainIsVerticalPush = pushEx.tags.includes("vertical");
+        const orientationTag = mainIsVerticalPush ? "horizontal" : "vertical";
+        const pushPool = EXERCISES.main.filter(
+          ex => ex.pattern === "push" &&
+                ex.tags.includes(orientationTag) &&
+                ex.name !== pushEx.name &&
+                exerciseAllowed(ex, fms)
+        );
+        result.advanced.secondaryPush = randomChoice(pushPool) || null;
+      }
+      if (fms.SM > 1 && pullEx) {
+        const mainIsVerticalPull = pullEx.tags.includes("vertical");
+        const orientationTag = mainIsVerticalPull ? "horizontal" : "vertical";
+        const pullPool = EXERCISES.main.filter(
+          ex => ex.pattern === "pull" &&
+                ex.tags.includes(orientationTag) &&
+                ex.name !== pullEx.name &&
+                exerciseAllowed(ex, fms)
+        );
+        result.advanced.secondaryPull = randomChoice(pullPool) || null;
+      }
+
+      const clubPool = EXERCISES.advanced.filter(ex => exerciseAllowed(ex, fms));
+      result.advanced.clubMace = randomChoice(clubPool) || null;
+
+      const finAok = EXERCISES.finishersA.some(ex => exerciseAllowed(ex, fms));
+      const finBok = EXERCISES.finishersB.some(ex => exerciseAllowed(ex, fms));
+      const finCok = EXERCISES.finishersC.some(ex => exerciseAllowed(ex, fms));
+
+      let availableTypes = [];
+      if (finAok) availableTypes.push("A");
+      if (finBok) availableTypes.push("B");
+      if (finCok) availableTypes.push("C");
+
+      if (availableTypes.length === 0) {
+        result.finisher = { type: null, ex: null };
+        result.notes.push("Geen finisher beschikbaar op basis van huidige FMS (ASLR/TSPU/SM/RS restricties).");
+      } else {
+        const chosenType = randomChoice(availableTypes);
+        let pool;
+        if (chosenType === "A") pool = EXERCISES.finishersA;
+        else if (chosenType === "B") pool = EXERCISES.finishersB;
+        else pool = EXERCISES.finishersC;
+        const ex = randomChoice(pool.filter(e => exerciseAllowed(e, fms)));
+        result.finisher = { type: chosenType, ex };
+      }
+      return result;
+    }
+
+    const clientSelect = document.getElementById("clientSelect");
+    const addClientBtn = document.getElementById("addClientBtn");
+    const newClientRow = document.getElementById("newClientRow");
+    const newClientName = document.getElementById("newClientName");
+    const saveClientBtn = document.getElementById("saveClientBtn");
+    const activeClientBadge = document.getElementById("activeClientBadge");
+
+    const fmsASLR = document.getElementById("fmsASLR");
+    const fmsSM = document.getElementById("fmsSM");
+    const fmsAnkle = document.getElementById("fmsAnkle");
+    const fmsRS = document.getElementById("fmsRS");
+    const fmsTSPU = document.getElementById("fmsTSPU");
+    const fmsILL = document.getElementById("fmsILL");
+    const fmsHS = document.getElementById("fmsHS");
+    const fmsDSQ = document.getElementById("fmsDSQ");
+    const hsHeight = document.getElementById("hsHeight");
+    const ankleCm = document.getElementById("ankleCm");
+    const handLength = document.getElementById("handLength");
+    const shoulderPain = document.getElementById("shoulderPain");
+    const tspuPain = document.getElementById("tspuPain");
+    const rsPain = document.getElementById("rsPain");
+
+    const breathQ1 = document.getElementById("breathQ1");
+    const breathQ2 = document.getElementById("breathQ2");
+    const breathQ3 = document.getElementById("breathQ3");
+    const breathFRC = document.getElementById("breathFRC");
+    const breathTLC = document.getElementById("breathTLC");
+
+    const sfmaCSpine = document.getElementById("sfmaCSpine");
+    const sfmaUE = document.getElementById("sfmaUE");
+    const sfmaFlex = document.getElementById("sfmaFlex");
+    const sfmaExt = document.getElementById("sfmaExt");
+    const sfmaRot = document.getElementById("sfmaRot");
+    const sfmaSingle = document.getElementById("sfmaSingle");
+    const sfmaDeep = document.getElementById("sfmaDeep");
+
+    const saveFmsBtn = document.getElementById("saveFmsBtn");
+    const generateBtn = document.getElementById("generateBtn");
+    const outputEl = document.getElementById("output");
+    const clearStorageBtn = document.getElementById("clearStorageBtn");
+    const settingsAccordion = document.getElementById("settingsAccordion");
+    const settingsPanel = document.getElementById("settingsPanel");
+    const assessmentTabs = document.getElementById("assessmentTabs");
+
+    function renderClientOptions() {
+      const clients = loadClients();
+      clientSelect.innerHTML = "";
+      if (!clients.length) {
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "-- geen cliënten --";
+        clientSelect.appendChild(opt);
+        activeClientBadge.textContent = "Geen cliënt geselecteerd";
+        activeClientBadge.classList.remove("badge-accent");
+        // clear fields
+        clearAllAssessmentFields();
+        return;
+      }
+      for (const c of clients) {
+        const opt = document.createElement("option");
+        opt.value = c.id;
+        opt.textContent = c.name;
+        clientSelect.appendChild(opt);
+      }
+      clientSelect.value = clients[0].id;
+      updateFieldsForCurrentClient();
+    }
+
+    function clearAllAssessmentFields() {
+      fmsASLR.value = "";
+      fmsSM.value = "";
+      fmsAnkle.value = "green";
+      fmsRS.value = "";
+      fmsTSPU.value = "";
+      fmsILL.value = "";
+      fmsHS.value = "";
+      fmsDSQ.value = "";
+      hsHeight.value = "";
+      ankleCm.value = "";
+      handLength.value = "";
+      shoulderPain.checked = false;
+      tspuPain.checked = false;
+      rsPain.checked = false;
+
+      breathQ1.value = "";
+      breathQ2.value = "";
+      breathQ3.value = "";
+      breathFRC.value = "";
+      breathTLC.value = "";
+
+      sfmaCSpine.value = "";
+      sfmaUE.value = "";
+      sfmaFlex.value = "";
+      sfmaExt.value = "";
+      sfmaRot.value = "";
+      sfmaSingle.value = "";
+      sfmaDeep.value = "";
+    }
+
+    function updateFieldsForCurrentClient() {
+      const id = clientSelect.value;
+      const client = getClientById(id);
+      if (!client) {
+        activeClientBadge.textContent = "Geen cliënt geselecteerd";
+        activeClientBadge.classList.remove("badge-accent");
+        clearAllAssessmentFields();
+        return;
+      }
+      activeClientBadge.textContent = client.name;
+      activeClientBadge.classList.add("badge-accent");
+
+      const f = client.fms || {};
+      fmsASLR.value = f.ASLR ?? "";
+      fmsSM.value = f.SM ?? "";
+      fmsAnkle.value = f.ankle ?? "green";
+      fmsRS.value = f.RS ?? "";
+      fmsTSPU.value = f.TSPU ?? "";
+      fmsILL.value = f.ILL ?? "";
+      fmsHS.value = f.HS ?? "";
+      fmsDSQ.value = f.DSQ ?? "";
+      hsHeight.value = f.hsHeight ?? "";
+      ankleCm.value = f.ankleCm ?? "";
+      handLength.value = f.handLength ?? "";
+      shoulderPain.checked = !!f.shoulderPain;
+      tspuPain.checked = !!f.tspuPain;
+      rsPain.checked = !!f.rsPain;
+
+      const b = client.breathing || {};
+      breathQ1.value = b.q1 ?? "";
+      breathQ2.value = b.q2 ?? "";
+      breathQ3.value = b.q3 ?? "";
+      breathFRC.value = b.frcHold ?? "";
+      breathTLC.value = b.tlcHold ?? "";
+
+      const s = client.sfma || {};
+      sfmaCSpine.value = s.cSpine ?? "";
+      sfmaUE.value = s.upperExt ?? "";
+      sfmaFlex.value = s.multiFlex ?? "";
+      sfmaExt.value = s.multiExt ?? "";
+      sfmaRot.value = s.multiRot ?? "";
+      sfmaSingle.value = s.singleLeg ?? "";
+      sfmaDeep.value = s.deepSquat ?? "";
+    }
+
+    addClientBtn.addEventListener("click", () => {
+      const visible = newClientRow.style.display !== "none";
+      newClientRow.style.display = visible ? "none" : "flex";
+      if (!visible) newClientName.focus();
+    });
+
+    saveClientBtn.addEventListener("click", () => {
+      const name = newClientName.value.trim();
+      if (!name) return;
+      const client = { id: uid(), name, fms: {}, breathing: {}, sfma: {} };
+      upsertClient(client);
+      newClientName.value = "";
+      newClientRow.style.display = "none";
+      renderClientOptions();
+    });
+
+    clientSelect.addEventListener("change", updateFieldsForCurrentClient);
+
+    saveFmsBtn.addEventListener("click", () => {
+      const id = clientSelect.value;
+      const client = getClientById(id);
+      if (!client) {
+        alert("Selecteer eerst een cliënt of maak er één aan.");
+        return;
+      }
+      client.fms = {
+        ASLR: fmsASLR.value ? Number(fmsASLR.value) : null,
+        SM: fmsSM.value ? Number(fmsSM.value) : null,
+        ankle: fmsAnkle.value,
+        RS: fmsRS.value ? Number(fmsRS.value) : null,
+        TSPU: fmsTSPU.value ? Number(fmsTSPU.value) : null,
+        ILL: fmsILL.value ? Number(fmsILL.value) : null,
+        HS: fmsHS.value ? Number(fmsHS.value) : null,
+        DSQ: fmsDSQ.value ? Number(fmsDSQ.value) : null,
+        hsHeight: hsHeight.value ? Number(hsHeight.value) : null,
+        ankleCm: ankleCm.value ? Number(ankleCm.value) : null,
+        handLength: handLength.value ? Number(handLength.value) : null,
+        shoulderPain: shoulderPain.checked,
+        tspuPain: tspuPain.checked,
+        rsPain: rsPain.checked
+      };
+      client.breathing = {
+        q1: breathQ1.value ? Number(breathQ1.value) : null,
+        q2: breathQ2.value ? Number(breathQ2.value) : null,
+        q3: breathQ3.value ? Number(breathQ3.value) : null,
+        frcHold: breathFRC.value ? Number(breathFRC.value) : null,
+        tlcHold: breathTLC.value ? Number(breathTLC.value) : null
+      };
+      client.sfma = {
+        cSpine: sfmaCSpine.value || null,
+        upperExt: sfmaUE.value || null,
+        multiFlex: sfmaFlex.value || null,
+        multiExt: sfmaExt.value || null,
+        multiRot: sfmaRot.value || null,
+        singleLeg: sfmaSingle.value || null,
+        deepSquat: sfmaDeep.value || null
+      };
+      upsertClient(client);
+      const msg = document.createElement("div");
+      msg.textContent = "Profiel opgeslagen.";
+      msg.className = "small-note";
+      outputEl.innerHTML = "";
+      outputEl.appendChild(msg);
+      setTimeout(() => {
+        if (outputEl.contains(msg)) outputEl.removeChild(msg);
+      }, 1500);
+    });
+
+    settingsAccordion.addEventListener("click", (e) => {
+      const header = e.target.closest(".accordion-header");
+      if (!header) return;
+      const isCollapsed = settingsPanel.classList.contains("collapsed");
+      if (isCollapsed) {
+        settingsPanel.classList.remove("collapsed");
+        settingsAccordion.classList.remove("collapsed");
+      } else {
+        settingsPanel.classList.add("collapsed");
+        settingsAccordion.classList.add("collapsed");
+      }
+    });
+
+    // Tabs switching
+    if (assessmentTabs) {
+      const tabButtons = assessmentTabs.querySelectorAll(".tab-btn");
+      const tabPanels = settingsPanel.querySelectorAll(".tab-panel");
+      tabButtons.forEach(btn => {
+        btn.addEventListener("click", () => {
+          const targetId = btn.dataset.tabTarget;
+          tabButtons.forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          tabPanels.forEach(panel => {
+            panel.style.display = (panel.id === targetId) ? "block" : "none";
+          });
+        });
+      });
+    }
+
+    function createAccordionBlock(title, subtitle, initiallyOpen = true) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "output-block accordion-section";
+
+      const headerBtn = document.createElement("button");
+      headerBtn.type = "button";
+      headerBtn.className = "accordion-header";
+      const left = document.createElement("div");
+      const t = document.createElement("div");
+      t.className = "accordion-title";
+      t.textContent = title;
+      const s = document.createElement("div");
+      s.className = "accordion-subtitle";
+      s.textContent = subtitle || "";
+      left.appendChild(t);
+      if (subtitle) left.appendChild(s);
+      const chev = document.createElement("span");
+      chev.className = "chevron";
+      chev.textContent = "▾";
+      headerBtn.appendChild(left);
+      headerBtn.appendChild(chev);
+
+      const panel = document.createElement("div");
+      panel.className = "accordion-panel";
+      if (!initiallyOpen) {
+        panel.classList.add("collapsed");
+        wrapper.classList.add("collapsed");
+      }
+
+      headerBtn.addEventListener("click", () => {
+        const collapsed = panel.classList.contains("collapsed");
+        if (collapsed) {
+          panel.classList.remove("collapsed");
+          wrapper.classList.remove("collapsed");
+        } else {
+          panel.classList.add("collapsed");
+          wrapper.classList.add("collapsed");
+        }
+      });
+
+      wrapper.appendChild(headerBtn);
+      wrapper.appendChild(panel);
+      return { wrapper, panel };
+    }
+
+    function renderSession(session) {
+      outputEl.innerHTML = "";
+
+      const corr = document.createElement("div");
+      corr.className = "output-block";
+      corr.innerHTML = "<h4>Corrective</h4>" + session.corrective;
+      outputEl.appendChild(corr);
+
+      const main = document.createElement("div");
+      main.className = "output-block";
+      main.innerHTML = "<h4>Main Circuit</h4>";
+      if (!session.main.length) {
+        main.innerHTML += '<div class="muted">Geen main-oefeningen beschikbaar.</div>';
+      } else {
+        session.main.forEach(item => {
+          const div = document.createElement("div");
+          div.innerHTML = `<span class="pill">${item.slot}</span> ${item.ex.name}`;
+          main.appendChild(div);
+        });
+      }
+      outputEl.appendChild(main);
+
+      const intermAcc = createAccordionBlock(
+        "Intermediate Circuit",
+        "Lunge · Anti-rotatie · Rotatie",
+        true
+      );
+      if (!session.intermediate.length) {
+        const msg = document.createElement("div");
+        msg.className = "muted";
+        msg.textContent = "Geen intermediate-oefeningen beschikbaar.";
+        intermAcc.panel.appendChild(msg);
+      } else {
+        session.intermediate.forEach(item => {
+          const div = document.createElement("div");
+          div.innerHTML = `<span class="pill">${item.slot}</span> ${item.ex.name}`;
+          intermAcc.panel.appendChild(div);
+        });
+      }
+      outputEl.appendChild(intermAcc.wrapper);
+
+      const advAcc = createAccordionBlock(
+        "Advanced Circuit",
+        "Secondary Push/Pull + Club/Mace",
+        false
+      );
+      if (!session.advanced.secondaryPush && !session.advanced.secondaryPull && !session.advanced.clubMace) {
+        const msg = document.createElement("div");
+        msg.className = "muted";
+        msg.textContent = "Geen advanced-oefeningen beschikbaar.";
+        advAcc.panel.appendChild(msg);
+      } else {
+        if (session.advanced.secondaryPush) {
+          const div = document.createElement("div");
+          div.innerHTML = `<span class="pill">Secondary Push</span> ${session.advanced.secondaryPush.name}`;
+          advAcc.panel.appendChild(div);
+        }
+        if (session.advanced.secondaryPull) {
+          const div = document.createElement("div");
+          div.innerHTML = `<span class="pill">Secondary Pull</span> ${session.advanced.secondaryPull.name}`;
+          advAcc.panel.appendChild(div);
+        }
+        if (session.advanced.clubMace) {
+          const div = document.createElement("div");
+          div.innerHTML = `<span class="pill">Club/Mace</span> ${session.advanced.clubMace.name}`;
+          advAcc.panel.appendChild(div);
+        }
+      }
+      outputEl.appendChild(advAcc.wrapper);
+
+      const fin = document.createElement("div");
+      fin.className = "output-block";
+      fin.innerHTML = "<h4>Finisher</h4>";
+      if (!session.finisher || !session.finisher.type || !session.finisher.ex) {
+        fin.innerHTML += '<div class="muted">Geen finisher mogelijk met huidige FMS.</div>';
+      } else {
+        const label = session.finisher.type === "A" ? "A · Ballistic Pulls" :
+                      session.finisher.type === "B" ? "B · Ballistic Pushes" :
+                      "C · Carries";
+        fin.innerHTML += `<div><span class="pill">${label}</span> ${session.finisher.ex.name}</div>`;
+      }
+      outputEl.appendChild(fin);
+
+      if (session.notes && session.notes.length) {
+        const notes = document.createElement("div");
+        notes.className = "output-block";
+        notes.innerHTML = "<h4>Notities / beperkingen</h4>";
+        session.notes.forEach(n => {
+          const div = document.createElement("div");
+          div.className = "muted";
+          div.textContent = "• " + n;
+          notes.appendChild(div);
+        });
+        outputEl.appendChild(notes);
+      }
+
+      if (window.innerWidth < 768) {
+        outputEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+
+    generateBtn.addEventListener("click", () => {
+      const id = clientSelect.value;
+      const client = getClientById(id);
+      if (!client) {
+        alert("Selecteer eerst een cliënt en sla het profiel op.");
+        return;
+      }
+      const session = generateSessionForClient(client);
+      renderSession(session);
+    });
+
+    clearStorageBtn.addEventListener("click", () => {
+      if (!confirm("Weet je zeker dat je alle cliëntdata wilt verwijderen?")) return;
+      localStorage.removeItem(STORAGE_KEY);
+      renderClientOptions();
+      outputEl.innerHTML = "";
+    });
+
+    renderClientOptions();
+  </script>
+</body>
+</html>
