@@ -270,7 +270,6 @@
       color: #6b7280;
       margin-bottom: 0.4rem;
     }
-    /* Tabs Breathing / FMS / SFMA */
     .tabs {
       display: flex;
       gap: 0.4rem;
@@ -302,7 +301,7 @@
   <header>
     <div>
       <h1>FMS PT Session Generator</h1>
-      <span>Built for kettlebell PT · FMS + Breathing logic · v0.9</span>
+      <span>Built for kettlebell PT · Breathing + SFMA gating · v1.0</span>
     </div>
     <button class="btn small" id="clearStorageBtn">Reset alle data</button>
   </header>
@@ -311,27 +310,23 @@
     <div class="stack">
       <!-- CLIENT / SETTINGS -->
       <section class="card">
-        <div class="card-header-row">
-          <div>
-            <p class="section-label">Instellingen</p>
-            <h2 class="card-title">Cliënt &amp; assessmentprofiel</h2>
-            <p class="card-subtitle">
-              Kies een cliënt, vul Breathing, FMS en SFMA in. Klap daarna dicht tijdens de sessie.
-            </p>
-          </div>
-          <span class="badge badge-accent" id="activeClientBadge">Geen cliënt geselecteerd</span>
-        </div>
-
-        <div class="divider"></div>
-
         <div class="accordion" id="settingsAccordion">
           <button class="accordion-header accordion-header-main" type="button">
-            <div>
-              <div class="accordion-title">Cliënt, Breathing, FMS &amp; SFMA</div>
-              <div class="accordion-subtitle">Tap om te tonen/verbergen tijdens een sessie.</div>
+            <div class="card-header-row" id="settingsHeaderRow">
+              <div>
+                <p class="section-label">Instellingen</p>
+                <h2 class="card-title">Cliënt &amp; assessmentprofiel</h2>
+                <p class="card-subtitle">
+                  Kies een cliënt, vul Breathing, FMS en SFMA in. Klap daarna dicht tijdens de sessie.
+                </p>
+              </div>
+              <span class="badge badge-accent" id="activeClientBadge">Geen cliënt geselecteerd</span>
             </div>
             <span class="chevron">▾</span>
           </button>
+
+          <div class="divider"></div>
+
           <div class="accordion-panel" id="settingsPanel">
             <!-- Client selectie -->
             <div class="row" style="margin-bottom:0.6rem;">
@@ -403,7 +398,7 @@
                 <span class="muted">seconden</span>
               </div>
               <div class="small-note">
-                Deze waardes worden nu gebruikt om een eenvoudige Breathing-status (goed / acceptabel / slecht) te bepalen.
+                Deze waardes bepalen een eenvoudige Breathing-status (goed / acceptabel / slecht). De bewegingskwaliteit voor dit model komt uit de SFMA top-tier.
               </div>
             </div>
 
@@ -483,7 +478,7 @@
 
             <!-- SFMA tab -->
             <div id="sfmaTab" class="tab-panel" style="display:none;">
-              <h3 class="section-label" style="margin-top:0.2rem;">SFMA top-tier (placeholder)</h3>
+              <h3 class="section-label" style="margin-top:0.2rem;">SFMA top-tier</h3>
               <div class="row">
                 <span class="caption">Cervical (flex/ext/rot)</span>
                 <div style="flex:1; min-width:120px;">
@@ -569,7 +564,7 @@
                 </div>
               </div>
               <div class="small-note">
-                SFMA wordt al opgeslagen per cliënt, maar nog niet gebruikt in de oefenlogica.
+                SFMA top-tier wordt nu gebruikt om de Movement-status voor de Breathing-hiërarchie te bepalen (good / acceptable / bad).
               </div>
             </div>
 
@@ -587,7 +582,7 @@
             <p class="section-label">Sessie</p>
             <h2 class="card-title">PT sessie-generator</h2>
             <p class="card-subtitle">
-              Corrective (Breathing/FMS) → Main (Squat · Hinge · Push · Pull) → Intermediate → Advanced → Finisher.
+              Corrective (Breathing + SFMA-gate / FMS) → Main (Squat · Hinge · Push · Pull) → Intermediate → Advanced → Finisher.
             </p>
           </div>
           <span class="badge">Grind main · Ballistic finisher</span>
@@ -597,7 +592,7 @@
 
         <button class="btn primary full" id="generateBtn">Genereer sessie</button>
         <div class="small-note">
-          Breathing wordt eerst beoordeeld, daarna FMS. De output vertelt je wat primair is.
+          Breathing en SFMA bepalen eerst de prioriteit (Breathing vs Movement). FMS bepaalt daarna de concrete correctives en oefenblokkades.
         </div>
 
         <h3 class="section-label" style="margin-top:0.9rem;">Output</h3>
@@ -633,7 +628,6 @@
       return "c_" + Math.random().toString(36).slice(2);
     }
 
-    // ---------- Oefeningen ----------
     const EXERCISES = {
       main: [
         { name: "Goblet Squat", pattern: "squat", tags: ["squat","grind","symmetric-load"] },
@@ -742,7 +736,6 @@
       ]
     };
 
-    // ---------- Correctives-library ----------
     const CORRECTIVES = {
       ASLR: {
         pattern: "Straight Leg Raise (ASLR)",
@@ -835,7 +828,6 @@
       ]
     };
 
-    // ---------- Breathing & movement status ----------
     function computeBreathingStatus(b) {
       if (!b) return "unknown";
       let bad = false, acceptable = false, good = false;
@@ -864,17 +856,21 @@
       return "unknown";
     }
 
-    function computeMovementStatus(fms) {
-      const scores = [fms.ASLR, fms.SM, fms.RS, fms.TSPU, fms.ILL, fms.HS, fms.DSQ];
-      const anyBadScore = scores.some(v => typeof v === "number" && v <= 1);
-      const anyAcceptableScore = scores.some(v => typeof v === "number" && v === 2);
-      const anyPain = fms.shoulderPain || fms.tspuPain || fms.rsPain;
-      const ankleRed = fms.ankle === "red";
-      const ankleYellow = fms.ankle === "yellow";
+    function computeMovementStatusFromSFMA(sfma) {
+      if (!sfma) return "good";
+      const rawValues = Object.values(sfma || {});
+      const values = rawValues.filter(v => v === "FN" || v === "FP" || v === "DN" || v === "DP");
 
-      if (anyPain || anyBadScore || ankleRed) return "bad";
-      if (anyAcceptableScore || ankleYellow) return "acceptable";
-      return "good";
+      if (!values.length) return "good";
+
+      const hasPain = values.some(v => v === "FP" || v === "DP");
+      if (hasPain) return "bad";
+
+      const dnCount = values.filter(v => v === "DN").length;
+
+      if (dnCount === 0) return "good";
+      if (dnCount <= 2) return "acceptable";
+      return "bad";
     }
 
     function getPrimaryFmsCorrectiveOnly(fms) {
@@ -895,10 +891,9 @@
       return null;
     }
 
-    // combine Breathing + FMS logica zoals in de slide
-    function getPrimaryCorrective(fms, breathing) {
+    function getPrimaryCorrective(fms, breathing, sfma) {
       const breathingStatus = computeBreathingStatus(breathing);
-      const movementStatus = computeMovementStatus(fms);
+      const movementStatus = computeMovementStatusFromSFMA(sfma || {});
 
       let corrective = null;
       let breathingSuggestion = null;
@@ -910,14 +905,13 @@
         if (fmsCorr) corrective = { ...fmsCorr, source: "fms" };
 
         if (breathingStatus === "bad" && movementStatus === "bad") {
-          breathingSuggestion = "Ademhaling is suboptimaal (bad). Adresseer breathing tijdens de gekozen correctives.";
+          breathingSuggestion = "Ademhaling is suboptimaal (bad). Integreer breathing cues in de gekozen correctives.";
         }
       }
 
       return { corrective, breathingStatus, movementStatus, breathingSuggestion };
     }
 
-    // ---------- Oefening-filters ----------
     function exerciseAllowed(ex, fms) {
       const t = (tag) => ex.tags.includes(tag);
 
@@ -946,7 +940,7 @@
 
     function randomChoice(arr) {
       if (!arr.length) return null;
-      const idx = Math.floor(Math.random() * arr.length);
+      const idx = Math.floor(Math.random() * Math.random() * arr.length);
       return arr[idx];
     }
 
@@ -967,7 +961,8 @@
       };
 
       const breathing = client.breathing || {};
-      const corrInfo = getPrimaryCorrective(fms, breathing);
+      const sfma = client.sfma || {};
+      const corrInfo = getPrimaryCorrective(fms, breathing, sfma);
 
       const result = {
         corrective: corrInfo.corrective,
@@ -1070,7 +1065,6 @@
       return result;
     }
 
-    // ---------- DOM refs ----------
     const clientSelect = document.getElementById("clientSelect");
     const addClientBtn = document.getElementById("addClientBtn");
     const newClientRow = document.getElementById("newClientRow");
@@ -1115,7 +1109,6 @@
     const settingsPanel = document.getElementById("settingsPanel");
     const assessmentTabs = document.getElementById("assessmentTabs");
 
-    // ---------- Client UI ----------
     function renderClientOptions() {
       const clients = loadClients();
       clientSelect.innerHTML = "";
@@ -1283,7 +1276,6 @@
       }, 1500);
     });
 
-    // Settings accordion
     settingsAccordion.addEventListener("click", (e) => {
       const header = e.target.closest(".accordion-header-main");
       if (!header) return;
@@ -1297,7 +1289,6 @@
       }
     });
 
-    // Tabs switching
     if (assessmentTabs) {
       const tabButtons = assessmentTabs.querySelectorAll(".tab-btn");
       const tabPanels = settingsPanel.querySelectorAll(".tab-panel");
@@ -1313,7 +1304,6 @@
       });
     }
 
-    // ---------- Helpers output ----------
     function createAccordionBlock(title, subtitle, initiallyOpen = true) {
       const wrapper = document.createElement("div");
       wrapper.className = "output-block accordion-section";
@@ -1359,30 +1349,34 @@
       return { wrapper, panel };
     }
 
+    
     function renderSession(session) {
       outputEl.innerHTML = "";
 
-      // Corrective blok
+      // Corrective block
       const corr = document.createElement("div");
       corr.className = "output-block";
-      corr.innerHTML = "<h4>Corrective</h4>";
+
+      const corrTitle = document.createElement("h4");
+      corrTitle.textContent = "Corrective";
+      corr.appendChild(corrTitle);
 
       const statusLine = document.createElement("div");
       statusLine.className = "small-note";
       statusLine.textContent =
         "Breathing: " + (session.breathingStatus || "n.v.t.") +
-        " · Movement: " + (session.movementStatus || "n.v.t.");
+        " · Movement (SFMA): " + (session.movementStatus || "n.v.t.");
       corr.appendChild(statusLine);
 
       if (!session.corrective) {
         const msg = document.createElement("div");
         msg.className = "muted";
         msg.textContent =
-          "Geen duidelijke FMS-prioriteit gevonden. Kies correctives op basis van doel, observaties en breathing-status.";
+          "Geen duidelijke FMS-prioriteit gevonden. Kies correctives op basis van doel, observaties en breathing-/SFMA-status.";
         corr.appendChild(msg);
       } else {
         const headerLine = document.createElement("div");
-        headerLine.innerHTML = `<span class="pill">${session.corrective.pattern}</span>`;
+        headerLine.innerHTML = '<span class="pill">' + session.corrective.pattern + '</span>';
         corr.appendChild(headerLine);
 
         if (session.corrective.focus) {
@@ -1406,32 +1400,42 @@
           const extra = document.createElement("div");
           extra.className = "small-note";
           extra.textContent =
-            "Volgens de Breathing-hiërarchie: beweging is voldoende, ademhaling is nu de eerste prioriteit.";
+            "Volgens de Breathing-hiërarchie: SFMA-movement is voldoende, ademhaling is nu de eerste prioriteit.";
           corr.appendChild(extra);
         }
       }
       outputEl.appendChild(corr);
 
-      // Main
+      // Main circuit
       const main = document.createElement("div");
       main.className = "output-block";
-      main.innerHTML = "<h4>Main Circuit</h4>";
+      const mainTitle = document.createElement("h4");
+      mainTitle.textContent = "Main Circuit";
+      main.appendChild(mainTitle);
+      const mainNote = document.createElement("div");
+      mainNote.className = "small-note";
+      mainNote.textContent = "3–5 rondes · 5–7 herhalingen per oefening";
+      main.appendChild(mainNote);
+
       if (!session.main.length) {
-        main.innerHTML += '<div class="muted">Geen main-oefeningen beschikbaar.</div>';
+        const msg = document.createElement("div");
+        msg.className = "muted";
+        msg.textContent = "Geen main-oefeningen beschikbaar.";
+        main.appendChild(msg);
       } else {
         session.main.forEach(item => {
           const div = document.createElement("div");
-          div.innerHTML = `<span class="pill">${item.slot}</span> ${item.ex.name}`;
+          div.innerHTML = '<span class="pill">' + item.slot + '</span> ' + item.ex.name;
           main.appendChild(div);
         });
       }
       outputEl.appendChild(main);
 
-      // Intermediate
+      // Intermediate circuit (accordion)
       const intermAcc = createAccordionBlock(
         "Intermediate Circuit",
-        "Lunge · Anti-rotatie · Rotatie",
-        true
+        "2–3 rondes · 5–7 herhalingen · Lunge · Anti-rotatie · Rotatie",
+        false
       );
       if (!session.intermediate.length) {
         const msg = document.createElement("div");
@@ -1441,16 +1445,16 @@
       } else {
         session.intermediate.forEach(item => {
           const div = document.createElement("div");
-          div.innerHTML = `<span class="pill">${item.slot}</span> ${item.ex.name}`;
+          div.innerHTML = '<span class="pill">' + item.slot + '</span> ' + item.ex.name;
           intermAcc.panel.appendChild(div);
         });
       }
       outputEl.appendChild(intermAcc.wrapper);
 
-      // Advanced
+      // Advanced circuit (accordion, default closed)
       const advAcc = createAccordionBlock(
         "Advanced Circuit",
-        "Secondary Push/Pull + Club/Mace",
+        "1–2 rondes · 5–7 herhalingen · Secondary Push/Pull + Club/Mace",
         false
       );
       if (!session.advanced.secondaryPush && !session.advanced.secondaryPull && !session.advanced.clubMace) {
@@ -1461,17 +1465,17 @@
       } else {
         if (session.advanced.secondaryPush) {
           const div = document.createElement("div");
-          div.innerHTML = `<span class="pill">Secondary Push</span> ${session.advanced.secondaryPush.name}`;
+          div.innerHTML = '<span class="pill">Secondary Push</span> ' + session.advanced.secondaryPush.name;
           advAcc.panel.appendChild(div);
         }
         if (session.advanced.secondaryPull) {
           const div = document.createElement("div");
-          div.innerHTML = `<span class="pill">Secondary Pull</span> ${session.advanced.secondaryPull.name}`;
+          div.innerHTML = '<span class="pill">Secondary Pull</span> ' + session.advanced.secondaryPull.name;
           advAcc.panel.appendChild(div);
         }
         if (session.advanced.clubMace) {
           const div = document.createElement("div");
-          div.innerHTML = `<span class="pill">Club/Mace</span> ${session.advanced.clubMace.name}`;
+          div.innerHTML = '<span class="pill">Club/Mace</span> ' + session.advanced.clubMace.name;
           advAcc.panel.appendChild(div);
         }
       }
@@ -1480,21 +1484,37 @@
       // Finisher
       const fin = document.createElement("div");
       fin.className = "output-block";
-      fin.innerHTML = "<h4>Finisher</h4>";
+      const finTitle = document.createElement("h4");
+      finTitle.textContent = "Finisher";
+      fin.appendChild(finTitle);
+      const finNote = document.createElement("div");
+      finNote.className = "small-note";
+      finNote.textContent = "Ballistics / Club / Mace: 5–20 herhalingen";
+      fin.appendChild(finNote);
+
       if (!session.finisher || !session.finisher.type || !session.finisher.ex) {
-        fin.innerHTML += '<div class="muted">Geen finisher mogelijk met huidige FMS.</div>';
+        const msg = document.createElement("div");
+        msg.className = "muted";
+        msg.textContent = "Geen finisher mogelijk met huidige FMS.";
+        fin.appendChild(msg);
       } else {
         const label = session.finisher.type === "A" ? "A · Ballistic Pulls" :
                       session.finisher.type === "B" ? "B · Ballistic Pushes" :
                       "C · Carries";
-        fin.innerHTML += `<div><span class="pill">${label}</span> ${session.finisher.ex.name}</div>`;
+        const line = document.createElement("div");
+        line.innerHTML = '<span class="pill">' + label + '</span> ' + session.finisher.ex.name;
+        fin.appendChild(line);
       }
       outputEl.appendChild(fin);
 
+      // Notes
       if (session.notes && session.notes.length) {
         const notes = document.createElement("div");
         notes.className = "output-block";
-        notes.innerHTML = "<h4>Notities / beperkingen</h4>";
+        const notesTitle = document.createElement("h4");
+        notesTitle.textContent = "Notities / beperkingen";
+        notes.appendChild(notesTitle);
+
         session.notes.forEach(n => {
           const div = document.createElement("div");
           div.className = "muted";
@@ -1504,11 +1524,11 @@
         outputEl.appendChild(notes);
       }
 
+      // Scroll into view on small screens
       if (window.innerWidth < 768) {
         outputEl.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     }
-
     generateBtn.addEventListener("click", () => {
       const id = clientSelect.value;
       const client = getClientById(id);
@@ -1527,7 +1547,6 @@
       outputEl.innerHTML = "";
     });
 
-    // init
     renderClientOptions();
   </script>
 </body>
