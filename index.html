@@ -355,35 +355,38 @@
             <div id="breathingTab" class="tab-panel">
               <h3 class="section-label" style="margin-top:0.2rem;">Breathing screen</h3>
               <div class="row">
-                <span class="caption">Vraag 1</span>
+                <span class="caption">Voel je je gespannen?</span>
                 <div style="flex:1; min-width:120px;">
                   <select id="breathQ1">
                     <option value="">-</option>
-                    <option value="1">1 (slechter)</option>
-                    <option value="2">2 (matig)</option>
-                    <option value="3">3 (goed)</option>
+                    <option value="0">0 (nooit / niet waar)</option>
+                    <option value="1">1 (af en toe / beetje waar)</option>
+                    <option value="2">2 (vaak / meestal waar)</option>
+                    <option value="3">3 (heel vaak / heel erg waar)</option>
                   </select>
                 </div>
               </div>
               <div class="row">
-                <span class="caption">Vraag 2</span>
+                <span class="caption">Koude sensatie in handen of voeten?</span>
                 <div style="flex:1; min-width:120px;">
                   <select id="breathQ2">
                     <option value="">-</option>
-                    <option value="1">1 (slechter)</option>
-                    <option value="2">2 (matig)</option>
-                    <option value="3">3 (goed)</option>
+                    <option value="0">0 (nooit / niet waar)</option>
+                    <option value="1">1 (af en toe / beetje waar)</option>
+                    <option value="2">2 (vaak / meestal waar)</option>
+                    <option value="3">3 (heel vaak / heel erg waar)</option>
                   </select>
                 </div>
               </div>
               <div class="row">
-                <span class="caption">Vraag 3</span>
+                <span class="caption">Merk je bij jezelf dat je gaapt?</span>
                 <div style="flex:1; min-width:120px;">
                   <select id="breathQ3">
                     <option value="">-</option>
-                    <option value="1">1 (slechter)</option>
-                    <option value="2">2 (matig)</option>
-                    <option value="3">3 (goed)</option>
+                    <option value="0">0 (nooit / niet waar)</option>
+                    <option value="1">1 (af en toe / beetje waar)</option>
+                    <option value="2">2 (vaak / meestal waar)</option>
+                    <option value="3">3 (heel vaak / heel erg waar)</option>
                   </select>
                 </div>
               </div>
@@ -398,7 +401,7 @@
                 <span class="muted">seconden</span>
               </div>
               <div class="small-note">
-                Deze waardes bepalen een eenvoudige Breathing-status (goed / acceptabel / slecht). De bewegingskwaliteit voor dit model komt uit de SFMA top-tier.
+                Breathing status wordt bepaald op basis van de vragenlijst (0–3) en de breath holds (FRC &amp; TLC).
               </div>
             </div>
 
@@ -479,10 +482,11 @@
             <!-- SFMA tab -->
             <div id="sfmaTab" class="tab-panel" style="display:none;">
               <h3 class="section-label" style="margin-top:0.2rem;">SFMA top-tier</h3>
+
               <div class="row">
-                <span class="caption">Cervical (flex/ext/rot)</span>
+                <span class="caption">Cervical flexie</span>
                 <div style="flex:1; min-width:120px;">
-                  <select id="sfmaCSpine">
+                  <select id="sfmaCFlex">
                     <option value="">-</option>
                     <option value="FN">FN</option>
                     <option value="FP">FP</option>
@@ -491,10 +495,11 @@
                   </select>
                 </div>
               </div>
+
               <div class="row">
-                <span class="caption">Upper Extremity</span>
+                <span class="caption">Cervical extensie</span>
                 <div style="flex:1; min-width:120px;">
-                  <select id="sfmaUE">
+                  <select id="sfmaCExt">
                     <option value="">-</option>
                     <option value="FN">FN</option>
                     <option value="FP">FP</option>
@@ -503,6 +508,85 @@
                   </select>
                 </div>
               </div>
+
+              <div class="row">
+                <span class="caption">Cervical rotatie rechts</span>
+                <div style="flex:1; min-width:120px;">
+                  <select id="sfmaCRotR">
+                    <option value="">-</option>
+                    <option value="FN">FN</option>
+                    <option value="FP">FP</option>
+                    <option value="DN">DN</option>
+                    <option value="DP">DP</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="row">
+                <span class="caption">Cervical rotatie links</span>
+                <div style="flex:1; min-width:120px;">
+                  <select id="sfmaCRotL">
+                    <option value="">-</option>
+                    <option value="FN">FN</option>
+                    <option value="FP">FP</option>
+                    <option value="DN">DN</option>
+                    <option value="DP">DP</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="row">
+                <span class="caption">Upper Extremity 1 (MRE) rechts</span>
+                <div style="flex:1; min-width:120px;">
+                  <select id="sfmaUE1R">
+                    <option value="">-</option>
+                    <option value="FN">FN</option>
+                    <option value="FP">FP</option>
+                    <option value="DN">DN</option>
+                    <option value="DP">DP</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="row">
+                <span class="caption">Upper Extremity 1 (MRE) links</span>
+                <div style="flex:1; min-width:120px;">
+                  <select id="sfmaUE1L">
+                    <option value="">-</option>
+                    <option value="FN">FN</option>
+                    <option value="FP">FP</option>
+                    <option value="DN">DN</option>
+                    <option value="DP">DP</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="row">
+                <span class="caption">Upper Extremity 2 (LRF) rechts</span>
+                <div style="flex:1; min-width:120px;">
+                  <select id="sfmaUE2R">
+                    <option value="">-</option>
+                    <option value="FN">FN</option>
+                    <option value="FP">FP</option>
+                    <option value="DN">DN</option>
+                    <option value="DP">DP</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="row">
+                <span class="caption">Upper Extremity 2 (LRF) links</span>
+                <div style="flex:1; min-width:120px;">
+                  <select id="sfmaUE2L">
+                    <option value="">-</option>
+                    <option value="FN">FN</option>
+                    <option value="FP">FP</option>
+                    <option value="DN">DN</option>
+                    <option value="DP">DP</option>
+                  </select>
+                </div>
+              </div>
+
               <div class="row">
                 <span class="caption">Multi-seg. flexie</span>
                 <div style="flex:1; min-width:120px;">
@@ -515,6 +599,7 @@
                   </select>
                 </div>
               </div>
+
               <div class="row">
                 <span class="caption">Multi-seg. extensie</span>
                 <div style="flex:1; min-width:120px;">
@@ -527,10 +612,11 @@
                   </select>
                 </div>
               </div>
+
               <div class="row">
-                <span class="caption">Multi-seg. rotatie</span>
+                <span class="caption">Multi-seg. rotatie rechts</span>
                 <div style="flex:1; min-width:120px;">
-                  <select id="sfmaRot">
+                  <select id="sfmaRotR">
                     <option value="">-</option>
                     <option value="FN">FN</option>
                     <option value="FP">FP</option>
@@ -539,10 +625,11 @@
                   </select>
                 </div>
               </div>
+
               <div class="row">
-                <span class="caption">Single-leg stance</span>
+                <span class="caption">Multi-seg. rotatie links</span>
                 <div style="flex:1; min-width:120px;">
-                  <select id="sfmaSingle">
+                  <select id="sfmaRotL">
                     <option value="">-</option>
                     <option value="FN">FN</option>
                     <option value="FP">FP</option>
@@ -551,6 +638,33 @@
                   </select>
                 </div>
               </div>
+
+              <div class="row">
+                <span class="caption">Single-leg stance rechts</span>
+                <div style="flex:1; min-width:120px;">
+                  <select id="sfmaSingleR">
+                    <option value="">-</option>
+                    <option value="FN">FN</option>
+                    <option value="FP">FP</option>
+                    <option value="DN">DN</option>
+                    <option value="DP">DP</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="row">
+                <span class="caption">Single-leg stance links</span>
+                <div style="flex:1; min-width:120px;">
+                  <select id="sfmaSingleL">
+                    <option value="">-</option>
+                    <option value="FN">FN</option>
+                    <option value="FP">FP</option>
+                    <option value="DN">DN</option>
+                    <option value="DP">DP</option>
+                  </select>
+                </div>
+              </div>
+
               <div class="row">
                 <span class="caption">Overhead Deep Squat</span>
                 <div style="flex:1; min-width:120px;">
@@ -563,6 +677,7 @@
                   </select>
                 </div>
               </div>
+
               <div class="small-note">
                 SFMA top-tier wordt nu gebruikt om de Movement-status voor de Breathing-hiërarchie te bepalen (good / acceptable / bad).
               </div>
@@ -832,21 +947,26 @@
       if (!b) return "unknown";
       let bad = false, acceptable = false, good = false;
 
+      // Breathing questionnaire (0–3 per vraag)
+      // 2–3 = rood (bad), 1 = geel (acceptable), 0 = groen (good)
       const qs = [b.q1, b.q2, b.q3].filter(v => typeof v === "number");
       qs.forEach(v => {
-        if (v === 1) bad = true;
-        else if (v === 2) acceptable = true;
-        else if (v === 3) good = true;
+        if (v >= 2) bad = true;
+        else if (v === 1) acceptable = true;
+        else if (v === 0) good = true;
       });
 
+      // FRC: Red < 25s, Yellow 26–35s, Green > 35s
       if (typeof b.frcHold === "number") {
-        if (b.frcHold < 15) bad = true;
-        else if (b.frcHold < 25) acceptable = true;
+        if (b.frcHold < 25) bad = true;
+        else if (b.frcHold <= 35) acceptable = true;
         else good = true;
       }
+
+      // TLC: Red < 35s, Yellow 36–60s, Green > 60s
       if (typeof b.tlcHold === "number") {
-        if (b.tlcHold < 30) bad = true;
-        else if (b.tlcHold < 50) acceptable = true;
+        if (b.tlcHold < 35) bad = true;
+        else if (b.tlcHold <= 60) acceptable = true;
         else good = true;
       }
 
@@ -1093,12 +1213,20 @@
     const breathFRC = document.getElementById("breathFRC");
     const breathTLC = document.getElementById("breathTLC");
 
-    const sfmaCSpine = document.getElementById("sfmaCSpine");
-    const sfmaUE = document.getElementById("sfmaUE");
+    const sfmaCFlex = document.getElementById("sfmaCFlex");
+    const sfmaCExt = document.getElementById("sfmaCExt");
+    const sfmaCRotR = document.getElementById("sfmaCRotR");
+    const sfmaCRotL = document.getElementById("sfmaCRotL");
+    const sfmaUE1R = document.getElementById("sfmaUE1R");
+    const sfmaUE1L = document.getElementById("sfmaUE1L");
+    const sfmaUE2R = document.getElementById("sfmaUE2R");
+    const sfmaUE2L = document.getElementById("sfmaUE2L");
     const sfmaFlex = document.getElementById("sfmaFlex");
     const sfmaExt = document.getElementById("sfmaExt");
-    const sfmaRot = document.getElementById("sfmaRot");
-    const sfmaSingle = document.getElementById("sfmaSingle");
+    const sfmaRotR = document.getElementById("sfmaRotR");
+    const sfmaRotL = document.getElementById("sfmaRotL");
+    const sfmaSingleR = document.getElementById("sfmaSingleR");
+    const sfmaSingleL = document.getElementById("sfmaSingleL");
     const sfmaDeep = document.getElementById("sfmaDeep");
 
     const saveFmsBtn = document.getElementById("saveFmsBtn");
@@ -1154,12 +1282,20 @@
       breathFRC.value = "";
       breathTLC.value = "";
 
-      sfmaCSpine.value = "";
-      sfmaUE.value = "";
+      sfmaCFlex.value = "";
+      sfmaCExt.value = "";
+      sfmaCRotR.value = "";
+      sfmaCRotL.value = "";
+      sfmaUE1R.value = "";
+      sfmaUE1L.value = "";
+      sfmaUE2R.value = "";
+      sfmaUE2L.value = "";
       sfmaFlex.value = "";
       sfmaExt.value = "";
-      sfmaRot.value = "";
-      sfmaSingle.value = "";
+      sfmaRotR.value = "";
+      sfmaRotL.value = "";
+      sfmaSingleR.value = "";
+      sfmaSingleL.value = "";
       sfmaDeep.value = "";
     }
 
@@ -1199,12 +1335,20 @@
       breathTLC.value = b.tlcHold ?? "";
 
       const s = client.sfma || {};
-      sfmaCSpine.value = s.cSpine ?? "";
-      sfmaUE.value = s.upperExt ?? "";
+      sfmaCFlex.value = s.cFlex ?? "";
+      sfmaCExt.value = s.cExt ?? "";
+      sfmaCRotR.value = s.cRotR ?? "";
+      sfmaCRotL.value = s.cRotL ?? "";
+      sfmaUE1R.value = s.ue1R ?? "";
+      sfmaUE1L.value = s.ue1L ?? "";
+      sfmaUE2R.value = s.ue2R ?? "";
+      sfmaUE2L.value = s.ue2L ?? "";
       sfmaFlex.value = s.multiFlex ?? "";
       sfmaExt.value = s.multiExt ?? "";
-      sfmaRot.value = s.multiRot ?? "";
-      sfmaSingle.value = s.singleLeg ?? "";
+      sfmaRotR.value = s.multiRotR ?? "";
+      sfmaRotL.value = s.multiRotL ?? "";
+      sfmaSingleR.value = s.singleLegR ?? "";
+      sfmaSingleL.value = s.singleLegL ?? "";
       sfmaDeep.value = s.deepSquat ?? "";
     }
 
@@ -1257,12 +1401,20 @@
         tlcHold: breathTLC.value ? Number(breathTLC.value) : null
       };
       client.sfma = {
-        cSpine: sfmaCSpine.value || null,
-        upperExt: sfmaUE.value || null,
+        cFlex: sfmaCFlex.value || null,
+        cExt: sfmaCExt.value || null,
+        cRotR: sfmaCRotR.value || null,
+        cRotL: sfmaCRotL.value || null,
+        ue1R: sfmaUE1R.value || null,
+        ue1L: sfmaUE1L.value || null,
+        ue2R: sfmaUE2R.value || null,
+        ue2L: sfmaUE2L.value || null,
         multiFlex: sfmaFlex.value || null,
         multiExt: sfmaExt.value || null,
-        multiRot: sfmaRot.value || null,
-        singleLeg: sfmaSingle.value || null,
+        multiRotR: sfmaRotR.value || null,
+        multiRotL: sfmaRotL.value || null,
+        singleLegR: sfmaSingleR.value || null,
+        singleLegL: sfmaSingleL.value || null,
         deepSquat: sfmaDeep.value || null
       };
       upsertClient(client);
