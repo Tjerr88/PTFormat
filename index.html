@@ -932,16 +932,37 @@
       }
     };
 
-    const BREATHING_CORRECTIVE = {
-      pattern: "Breathing Restoration",
-      focus: "Prioriteer ademhaling: normaliseer patroon, volume en controle voordat je harder gaat belasten.",
-      drills: [
-        "Crocodile Breathing",
-        "90/90 Wall Breathing",
-        "Box Breathing (3-1-6-2)",
-        "All-Fours Belly Breathing"
-      ]
-    };
+    const BREATHING_CIRCUITS = [
+  {
+    id: "c1",
+    label: "Circuit 1 (sessies 1–8)",
+    drills: [
+      "Supine FRC – startmeting",
+      "Side Lying Crocodile Breathing · 10 ademhalingen (3-1-6-2)",
+      "Hook Lying Crocodile Breathing · 10 ademhalingen (3-1-6-2)",
+      "T-Spine Rotation with Rib Grab · 2×10 (3-1-6-2)",
+      "Foot to Hand Cat Cow · 2×10 (3-1-6-2)",
+      "Supine FRC – eindmeting"
+    ]
+  },
+  {
+    id: "c2",
+    label: "Circuit 2 (sessies 9–16)",
+    drills: [
+      "Quadruped FRC – startmeting",
+      "Foot to Hand Cat Cow · 2×10 (3-1-6-2)",
+      "Half Kneeling Turns · 2×10 (3× hoofd, 3× schouders, 3× schouders + armen)",
+      "Toe Touch Progression · 10× hielen verhoogd + 10× tenen verhoogd",
+      "Quadruped FRC – eindmeting"
+    ]
+  }
+];
+
+const BREATHING_CORRECTIVE = {
+  pattern: "Breathing Restoration",
+  focus: "Prioriteer ademhaling: normaliseer patroon, volume en controle voordat je harder gaat belasten.",
+  circuits: BREATHING_CIRCUITS
+};
 
     function computeBreathingStatus(b) {
       if (!b) return "unknown";
@@ -1064,7 +1085,19 @@
       return arr[idx];
     }
 
-    function generateSessionForClient(client) {
+    
+function shuffleArray(arr) {
+      const copy = arr.slice();
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const tmp = copy[i];
+        copy[i] = copy[j];
+        copy[j] = tmp;
+      }
+      return copy;
+    }
+
+function generateSessionForClient(client, lastSession) {
       const f = client.fms || {};
       const fms = {
         ASLR: Number(f.ASLR ?? 3),
@@ -1095,14 +1128,23 @@
         finisher: null,
         notes: []
       };
+      const last = lastSession || {};
+      const lastMainNames = Array.isArray(last.mainNames) ? last.mainNames : [];
+      const lastIntermediateNames = Array.isArray(last.intermediateNames) ? last.intermediateNames : [];
+      const lastAdvancedNames = Array.isArray(last.advancedNames) ? last.advancedNames : [];
+      const lastFinisherName = last.finisherName || null;
 
-      const mainPool = EXERCISES.main.filter(ex => exerciseAllowed(ex, fms));
+
+
+            const mainPool = EXERCISES.main.filter(ex => exerciseAllowed(ex, fms));
       function pickByPattern(pattern) {
-        const pool = mainPool.filter(ex => ex.pattern === pattern);
+        let pool = mainPool.filter(ex => ex.pattern === pattern);
+        if (lastMainNames.length) {
+          const nonRepeat = pool.filter(ex => !lastMainNames.includes(ex.name));
+          if (nonRepeat.length) pool = nonRepeat;
+        }
         return randomChoice(pool);
-      }
-
-      const squatEx = pickByPattern("squat");
+      }      const squatEx = pickByPattern("squat");
       const hingeEx = pickByPattern("hinge");
       const pushEx = pickByPattern("push");
       const pullEx = pickByPattern("pull");
@@ -1117,10 +1159,22 @@
       if (!pushEx) result.notes.push("Geen push beschikbaar (shoulder pain of SM/FMS restricties).");
       if (!pullEx) result.notes.push("Geen pull beschikbaar (SM/ASLR restricties).");
 
-      const intermPool = EXERCISES.intermediate.filter(ex => exerciseAllowed(ex, fms));
-      const lunge = randomChoice(intermPool.filter(ex => ex.pattern === "lunge"));
-      const antiRot = randomChoice(intermPool.filter(ex => ex.pattern === "anti-rotation"));
-      const rot = randomChoice(intermPool.filter(ex => ex.pattern === "rotation"));
+      if (result.main.length > 1) {
+        result.main = shuffleArray(result.main);
+      }const intermPool = EXERCISES.intermediate.filter(ex => exerciseAllowed(ex, fms));
+
+      function pickIntermediate(pattern) {
+        let pool = intermPool.filter(ex => ex.pattern === pattern);
+        if (lastIntermediateNames.length) {
+          const nonRepeat = pool.filter(ex => !lastIntermediateNames.includes(ex.name));
+          if (nonRepeat.length) pool = nonRepeat;
+        }
+        return randomChoice(pool);
+      }
+
+      const lunge = pickIntermediate("lunge");
+      const antiRot = pickIntermediate("anti-rotation");
+      const rot = pickIntermediate("rotation");
 
       if (lunge) result.intermediate.push({ slot: "Lunge", ex: lunge });
       if (antiRot) result.intermediate.push({ slot: "Anti-rotatie", ex: antiRot });
@@ -1133,27 +1187,39 @@
       if (fms.SM > 1 && pushEx) {
         const mainIsVerticalPush = pushEx.tags.includes("vertical");
         const orientationTag = mainIsVerticalPush ? "horizontal" : "vertical";
-        const pushPool = EXERCISES.main.filter(
+        let pushPool = EXERCISES.main.filter(
           ex => ex.pattern === "push" &&
                 ex.tags.includes(orientationTag) &&
                 ex.name !== pushEx.name &&
                 exerciseAllowed(ex, fms)
         );
+        if (lastAdvancedNames.length) {
+          const nonRepeat = pushPool.filter(ex => !lastAdvancedNames.includes(ex.name));
+          if (nonRepeat.length) pushPool = nonRepeat;
+        }
         result.advanced.secondaryPush = randomChoice(pushPool) || null;
       }
       if (fms.SM > 1 && pullEx) {
         const mainIsVerticalPull = pullEx.tags.includes("vertical");
         const orientationTag = mainIsVerticalPull ? "horizontal" : "vertical";
-        const pullPool = EXERCISES.main.filter(
+        let pullPool = EXERCISES.main.filter(
           ex => ex.pattern === "pull" &&
                 ex.tags.includes(orientationTag) &&
                 ex.name !== pullEx.name &&
                 exerciseAllowed(ex, fms)
         );
+        if (lastAdvancedNames.length) {
+          const nonRepeat = pullPool.filter(ex => !lastAdvancedNames.includes(ex.name));
+          if (nonRepeat.length) pullPool = nonRepeat;
+        }
         result.advanced.secondaryPull = randomChoice(pullPool) || null;
       }
 
-      const clubPool = EXERCISES.advanced.filter(ex => exerciseAllowed(ex, fms));
+      let clubPool = EXERCISES.advanced.filter(ex => exerciseAllowed(ex, fms));
+      if (lastAdvancedNames.length) {
+        const nonRepeatClub = clubPool.filter(ex => !lastAdvancedNames.includes(ex.name));
+        if (nonRepeatClub.length) clubPool = nonRepeatClub;
+      }
       result.advanced.clubMace = randomChoice(clubPool) || null;
 
       const finAok = EXERCISES.finishersA.some(ex => exerciseAllowed(ex, fms));
@@ -1174,7 +1240,14 @@
         if (chosenType === "A") pool = EXERCISES.finishersA;
         else if (chosenType === "B") pool = EXERCISES.finishersB;
         else pool = EXERCISES.finishersC;
-        const ex = randomChoice(pool.filter(e => exerciseAllowed(e, fms)));
+
+        let candidates = pool.filter(e => exerciseAllowed(e, fms));
+        if (lastFinisherName) {
+          const nonRepeat = candidates.filter(e => e.name !== lastFinisherName);
+          if (nonRepeat.length) candidates = nonRepeat;
+        }
+
+        const ex = randomChoice(candidates);
         result.finisher = { type: chosenType, ex };
       }
 
@@ -1538,22 +1611,74 @@
           corr.appendChild(focus);
         }
 
-        const list = document.createElement("ul");
-        list.style.margin = "0.45rem 0 0";
-        list.style.paddingLeft = "1.1rem";
-        session.corrective.drills.forEach(name => {
-          const li = document.createElement("li");
-          li.textContent = name;
-          list.appendChild(li);
-        });
-        corr.appendChild(list);
+        // Breathing-corrective: toon mini-tabs voor Circuit 1 en 2
+        if (session.corrective.source === "breathing" && Array.isArray(session.corrective.circuits)) {
+          const tabsWrapper = document.createElement("div");
+          tabsWrapper.className = "tabs";
+          const panelsWrapper = document.createElement("div");
 
-        if (session.corrective.source === "breathing") {
+          const circuits = session.corrective.circuits;
+          const tabButtons = [];
+          const tabPanels = [];
+
+          circuits.forEach((circuit, idx) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "tab-btn" + (idx === 0 ? " active" : "");
+            btn.textContent = circuit.label || ("Circuit " + (idx + 1));
+            btn.dataset.target = "breathCircuit_" + (idx + 1);
+            tabsWrapper.appendChild(btn);
+            tabButtons.push(btn);
+
+            const panel = document.createElement("div");
+            panel.className = "tab-panel";
+            panel.id = btn.dataset.target;
+            panel.style.display = idx === 0 ? "block" : "none";
+
+            const list = document.createElement("ul");
+            list.style.margin = "0.45rem 0 0";
+            list.style.paddingLeft = "1.1rem";
+            (circuit.drills || []).forEach(name => {
+              const li = document.createElement("li");
+              li.textContent = name;
+              list.appendChild(li);
+            });
+            panel.appendChild(list);
+
+            panelsWrapper.appendChild(panel);
+            tabPanels.push(panel);
+          });
+
+          corr.appendChild(tabsWrapper);
+          corr.appendChild(panelsWrapper);
+
+          tabButtons.forEach(btn => {
+            btn.addEventListener("click", () => {
+              const target = btn.dataset.target;
+              tabButtons.forEach(b => b.classList.remove("active"));
+              btn.classList.add("active");
+              tabPanels.forEach(p => {
+                p.style.display = (p.id === target) ? "block" : "none";
+              });
+            });
+          });
+
           const extra = document.createElement("div");
           extra.className = "small-note";
           extra.textContent =
             "Volgens de Breathing-hiërarchie: SFMA-movement is voldoende, ademhaling is nu de eerste prioriteit.";
           corr.appendChild(extra);
+        } else {
+          // Standaard FMS-corrective: eenvoudige lijst
+          const list = document.createElement("ul");
+          list.style.margin = "0.45rem 0 0";
+          list.style.paddingLeft = "1.1rem";
+          (session.corrective.drills || []).forEach(name => {
+            const li = document.createElement("li");
+            li.textContent = name;
+            list.appendChild(li);
+          });
+          corr.appendChild(list);
         }
       }
       outputEl.appendChild(corr);
@@ -1681,6 +1806,7 @@
         outputEl.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     }
+    
     generateBtn.addEventListener("click", () => {
       const id = clientSelect.value;
       const client = getClientById(id);
@@ -1688,7 +1814,24 @@
         alert("Selecteer eerst een cliënt en sla het profiel op.");
         return;
       }
-      const session = generateSessionForClient(client);
+
+      const lastSession = client.lastSession || null;
+      const session = generateSessionForClient(client, lastSession);
+
+      const newLastSession = {
+        mainNames: session.main.map(item => item.ex.name),
+        intermediateNames: session.intermediate.map(item => item.ex.name),
+        advancedNames: [
+          session.advanced.secondaryPush && session.advanced.secondaryPush.name,
+          session.advanced.secondaryPull && session.advanced.secondaryPull.name,
+          session.advanced.clubMace && session.advanced.clubMace.name
+        ].filter(Boolean),
+        finisherName: session.finisher && session.finisher.ex ? session.finisher.ex.name : null
+      };
+
+      client.lastSession = newLastSession;
+      upsertClient(client);
+
       renderSession(session);
     });
 
