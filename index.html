@@ -301,7 +301,7 @@
   <header>
     <div>
       <h1>FMS PT Session Generator</h1>
-      <span>Built for kettlebell PT · Breathing + SFMA gating · v1.0</span>
+      <span>Built for kettlebell PT · Breathing + SFMA gating · v1.1</span>
     </div>
     <button class="btn small" id="clearStorageBtn">Reset alle data</button>
   </header>
@@ -317,7 +317,7 @@
                 <p class="section-label">Instellingen</p>
                 <h2 class="card-title">Cliënt &amp; assessmentprofiel</h2>
                 <p class="card-subtitle">
-                  Kies een cliënt, vul Breathing, FMS en SFMA in. Klap daarna dicht tijdens de sessie.
+                  Kies een cliënt, vul Breathing, FMS, SFMA en Plan in. Klap daarna dicht tijdens de sessie.
                 </p>
               </div>
               <span class="badge badge-accent" id="activeClientBadge">Geen cliënt geselecteerd</span>
@@ -349,6 +349,7 @@
               <button type="button" class="tab-btn active" data-tab-target="breathingTab">Breathing</button>
               <button type="button" class="tab-btn" data-tab-target="fmsTab">FMS</button>
               <button type="button" class="tab-btn" data-tab-target="sfmaTab">SFMA</button>
+              <button type="button" class="tab-btn" data-tab-target="planTab">Plan</button>
             </div>
 
             <!-- Breathing tab -->
@@ -683,8 +684,58 @@
               </div>
             </div>
 
+            <!-- PLAN tab -->
+            <div id="planTab" class="tab-panel" style="display:none;">
+              <h3 class="section-label" style="margin-top:0.2rem;">Plan &amp; voorkeuren</h3>
+
+              <div class="row">
+                <span class="caption">Trainingsmodus</span>
+                <div style="flex:1; min-width:160px; display:flex; flex-direction:column; gap:0.25rem;">
+                  <label>
+                    <input type="radio" name="planMode" id="planModeThier" value="thier" />
+                    Thier – huidige PT-logica (baseline)
+                  </label>
+                  <label>
+                    <input type="radio" name="planMode" id="planModeHypertrophy" value="hypertrophy" />
+                    Hypertrofie – Push/Pull superset, rep-cyclus, isolatie + finisher
+                  </label>
+                  <label>
+                    <input type="radio" name="planMode" id="planModeStrength" value="strength" />
+                    Kracht – Barbell main lift (3–5×3–5), geen finisher
+                  </label>
+                </div>
+              </div>
+
+              <div class="row" style="margin-top:0.4rem;">
+                <span class="caption">Apparatuur</span>
+                <div style="flex:1; min-width:160px; display:flex; flex-direction:column; gap:0.25rem;">
+                  <label>
+                    <input type="checkbox" id="planEquipKB" />
+                    Kettlebells
+                  </label>
+                  <label>
+                    <input type="checkbox" id="planEquipBB" />
+                    Barbell
+                  </label>
+                  <label>
+                    <input type="checkbox" id="planEquipBW" />
+                    Bodyweight
+                  </label>
+                  <label>
+                    <input type="checkbox" id="planEquipMachine" />
+                    Machines
+                  </label>
+                </div>
+              </div>
+
+              <div class="small-note">
+                Modus bepaalt de structuur van de sessie. Apparatuur bepaalt welke oefenpools beschikbaar zijn.
+                FMS blijft altijd de oefenblokkades bepalen per oefening.
+              </div>
+            </div>
+
             <button class="btn primary full" id="saveFmsBtn" style="margin-top:0.6rem;">
-              Profiel (Breathing/FMS/SFMA) opslaan voor cliënt
+              Profiel (Breathing/FMS/SFMA/Plan) opslaan voor cliënt
             </button>
           </div>
         </div>
@@ -697,10 +748,10 @@
             <p class="section-label">Sessie</p>
             <h2 class="card-title">PT sessie-generator</h2>
             <p class="card-subtitle">
-              Corrective (Breathing + SFMA-gate / FMS) → Main (Squat · Hinge · Push · Pull) → Intermediate → Advanced → Finisher.
+              Corrective (Breathing + SFMA-gate / FMS) → Opener (TGU) → Main → Intermediate → Advanced → Finisher (afhankelijk van modus).
             </p>
           </div>
-          <span class="badge">Grind main · Ballistic finisher</span>
+          <span class="badge" id="modeBadge">Modus: Thier · KB-only</span>
         </div>
 
         <div class="divider"></div>
@@ -717,7 +768,7 @@
   </main>
 
   <script>
-    const STORAGE_KEY = "pt_fms_clients_v09";
+    const STORAGE_KEY = "pt_fms_clients_v10";
 
     function loadClients() {
       try {
@@ -743,111 +794,188 @@
       return "c_" + Math.random().toString(36).slice(2);
     }
 
+    // Oefeningen: bestaande KB-oefeningen + barbell/bodyweight/machines/isolatie
     const EXERCISES = {
       main: [
-        { name: "Goblet Squat", pattern: "squat", tags: ["squat","grind","symmetric-load"] },
-        { name: "Double Rack Front Squat", pattern: "squat", tags: ["squat","grind","symmetric-load"] },
-        { name: "Single Rack Front Squat", pattern: "squat", tags: ["squat","grind","asymmetric-load"] },
-        { name: "B-Stance Squat (Goblet)", pattern: "squat", tags: ["squat","grind","b-stance","symmetric-load"] },
-        { name: "Box Pistol Squat (Goblet)", pattern: "squat", tags: ["squat","grind","single-leg","symmetric-load"] },
-        { name: "Step-Up (Goblet)", pattern: "squat", tags: ["squat","grind","single-leg","symmetric-load"] },
+        // Kettlebell – Squat
+        { name: "Goblet Squat", pattern: "squat", tags: ["squat","grind","symmetric-load"], equipment: "kb" },
+        { name: "Double Rack Front Squat", pattern: "squat", tags: ["squat","grind","symmetric-load"], equipment: "kb" },
+        { name: "Single Rack Front Squat", pattern: "squat", tags: ["squat","grind","asymmetric-load"], equipment: "kb" },
+        { name: "B-Stance Squat (Goblet)", pattern: "squat", tags: ["squat","grind","b-stance","symmetric-load"], equipment: "kb" },
+        { name: "Box Pistol Squat (Goblet)", pattern: "squat", tags: ["squat","grind","single-leg","symmetric-load"], equipment: "kb" },
+        { name: "Step-Up (Goblet)", pattern: "squat", tags: ["squat","grind","single-leg","symmetric-load"], equipment: "kb" },
 
-        { name: "Conventional Deadlift (2H Single Bell)", pattern: "hinge", tags: ["hinge","grind","hinge-based","symmetric-load"] },
-        { name: "Double KB Deadlift", pattern: "hinge", tags: ["hinge","grind","hinge-based","symmetric-load"] },
-        { name: "Goodmorning (KB Backload)", pattern: "hinge", tags: ["hinge","grind","hinge-based","symmetric-load"] },
-        { name: "Single-Leg Deadlift (2H Single Bell)", pattern: "hinge", tags: ["hinge","grind","hinge-based","single-leg","symmetric-load"] },
-        { name: "Hip Thrust (Double KB)", pattern: "hinge", tags: ["hinge","grind","hinge-based","symmetric-load"] },
-        { name: "Glute Bridge (Double KB)", pattern: "hinge", tags: ["hinge","grind","hinge-based","symmetric-load"] },
+        // Kettlebell – Hinge
+        { name: "Conventional Deadlift (2H Single Bell)", pattern: "hinge", tags: ["hinge","grind","hinge-based","symmetric-load"], equipment: "kb" },
+        { name: "Double KB Deadlift", pattern: "hinge", tags: ["hinge","grind","hinge-based","symmetric-load"], equipment: "kb" },
+        { name: "Goodmorning (KB Backload)", pattern: "hinge", tags: ["hinge","grind","hinge-based","symmetric-load"], equipment: "kb" },
+        { name: "Single-Leg Deadlift (2H Single Bell)", pattern: "hinge", tags: ["hinge","grind","hinge-based","single-leg","symmetric-load"], equipment: "kb" },
+        { name: "Hip Thrust (Double KB)", pattern: "hinge", tags: ["hinge","grind","hinge-based","symmetric-load"], equipment: "kb" },
+        { name: "Glute Bridge (Double KB)", pattern: "hinge", tags: ["hinge","grind","hinge-based","symmetric-load"], equipment: "kb" },
 
-        { name: "Double KB Military Press", pattern: "push", tags: ["push","vertical","grind","symmetric-load"] },
-        { name: "Single KB Military Press", pattern: "push", tags: ["push","vertical","grind","asymmetric-load"] },
-        { name: "Single KB Half-Kneeling Press", pattern: "push", tags: ["push","vertical","grind","asymmetric-load","half-kneeling"] },
-        { name: "Single KB Tall-Kneeling Press", pattern: "push", tags: ["push","vertical","grind","asymmetric-load","tall-kneeling"] },
-        { name: "Double KB Floor Press", pattern: "push", tags: ["push","horizontal","grind","symmetric-load"] },
-        { name: "Single KB Floor Press", pattern: "push", tags: ["push","horizontal","grind","asymmetric-load"] },
-        { name: "Double KB Bridge Floor Press", pattern: "push", tags: ["push","horizontal","grind","symmetric-load"] },
+        // Kettlebell – Push
+        { name: "Double KB Military Press", pattern: "push", tags: ["push","vertical","grind","symmetric-load"], equipment: "kb" },
+        { name: "Single KB Military Press", pattern: "push", tags: ["push","vertical","grind","asymmetric-load"], equipment: "kb" },
+        { name: "Single KB Half-Kneeling Press", pattern: "push", tags: ["push","vertical","grind","asymmetric-load","half-kneeling"], equipment: "kb" },
+        { name: "Single KB Tall-Kneeling Press", pattern: "push", tags: ["push","vertical","grind","asymmetric-load","tall-kneeling"], equipment: "kb" },
+        { name: "Double KB Floor Press", pattern: "push", tags: ["push","horizontal","grind","symmetric-load"], equipment: "kb" },
+        { name: "Single KB Floor Press", pattern: "push", tags: ["push","horizontal","grind","asymmetric-load"], equipment: "kb" },
+        { name: "Double KB Bridge Floor Press", pattern: "push", tags: ["push","horizontal","grind","symmetric-load"], equipment: "kb" },
 
-        { name: "Pull-Up", pattern: "pull", tags: ["pull","vertical","grind","symmetric-load"] },
-        { name: "Chin-Up", pattern: "pull", tags: ["pull","vertical","grind","symmetric-load"] },
-        { name: "KB Pullover", pattern: "pull", tags: ["pull","vertical","grind","symmetric-load"] },
-        { name: "Double KB Bent-Over Row", pattern: "pull", tags: ["pull","horizontal","grind","hinge-based","symmetric-load"] },
-        { name: "Single KB Bent-Over Row", pattern: "pull", tags: ["pull","horizontal","grind","hinge-based","asymmetric-load"] },
-        { name: "Double Gorilla Row", pattern: "pull", tags: ["pull","horizontal","grind","hinge-based","symmetric-load"] },
-        { name: "Gorilla Row (Alternating)", pattern: "pull", tags: ["pull","horizontal","grind","hinge-based","asymmetric-load"] },
-        { name: "Staggered KB Row (Supported)", pattern: "pull", tags: ["pull","horizontal","grind","supported","asymmetric-load"] }
+        // Kettlebell/Bodyweight – Pull
+        { name: "Pull-Up", pattern: "pull", tags: ["pull","vertical","grind","symmetric-load"], equipment: "bw" },
+        { name: "Chin-Up", pattern: "pull", tags: ["pull","vertical","grind","symmetric-load"], equipment: "bw" },
+        { name: "KB Pullover", pattern: "pull", tags: ["pull","vertical","grind","symmetric-load"], equipment: "kb" },
+        { name: "Double KB Bent-Over Row", pattern: "pull", tags: ["pull","horizontal","grind","hinge-based","symmetric-load"], equipment: "kb" },
+        { name: "Single KB Bent-Over Row", pattern: "pull", tags: ["pull","horizontal","grind","hinge-based","asymmetric-load"], equipment: "kb" },
+        { name: "Double Gorilla Row", pattern: "pull", tags: ["pull","horizontal","grind","hinge-based","symmetric-load"], equipment: "kb" },
+        { name: "Gorilla Row (Alternating)", pattern: "pull", tags: ["pull","horizontal","grind","hinge-based","asymmetric-load"], equipment: "kb" },
+        { name: "Staggered KB Row (Supported)", pattern: "pull", tags: ["pull","horizontal","grind","supported","asymmetric-load"], equipment: "kb" },
+
+        // Barbell – Squat (DSQ>1, TSPU>1)
+        { name: "Barbell Front Squat", pattern: "squat", tags: ["squat","grind","symmetric-load","barbell"], equipment: "barbell" },
+        { name: "Barbell Back Squat", pattern: "squat", tags: ["squat","grind","symmetric-load","barbell"], equipment: "barbell" },
+        { name: "Zercher Squat", pattern: "squat", tags: ["squat","grind","symmetric-load","barbell"], equipment: "barbell" },
+        { name: "Barbell Lunge", pattern: "squat", tags: ["squat","grind","single-leg","barbell"], equipment: "barbell" },
+
+        // Barbell – Push
+        { name: "Barbell Bench Press", pattern: "push", tags: ["push","horizontal","grind","barbell"], equipment: "barbell" },
+        { name: "Barbell Incline Bench Press", pattern: "push", tags: ["push","horizontal","grind","barbell"], equipment: "barbell" },
+        { name: "Barbell Shoulder Press", pattern: "push", tags: ["push","vertical","grind","barbell"], equipment: "barbell" },
+        { name: "Barbell Push Press", pattern: "push", tags: ["push","vertical","ballistic","barbell"], equipment: "barbell" },
+        { name: "Barbell Push Jerk", pattern: "push", tags: ["push","vertical","ballistic","barbell"], equipment: "barbell" },
+
+        // Barbell – Pull
+        { name: "Barbell Clean", pattern: "pull", tags: ["pull","ballistic","hinge-based","symmetric-load","barbell"], equipment: "barbell" },
+        { name: "Barbell Snatch", pattern: "pull", tags: ["pull","ballistic","vertical","overhead","hinge-based","symmetric-load","barbell"], equipment: "barbell" },
+        { name: "Barbell Bent Over Row", pattern: "pull", tags: ["pull","horizontal","grind","hinge-based","barbell"], equipment: "barbell" },
+
+        // Barbell – Hinge
+        { name: "Barbell Conventional Deadlift", pattern: "hinge", tags: ["hinge","grind","hinge-based","symmetric-load","barbell"], equipment: "barbell" },
+        { name: "Barbell Sumo Deadlift", pattern: "hinge", tags: ["hinge","grind","hinge-based","symmetric-load","barbell"], equipment: "barbell" },
+        { name: "Barbell Goodmorning", pattern: "hinge", tags: ["hinge","grind","hinge-based","symmetric-load","barbell"], equipment: "barbell" },
+        { name: "Barbell Romanian Deadlift", pattern: "hinge", tags: ["hinge","grind","hinge-based","symmetric-load","barbell"], equipment: "barbell" },
+
+        // Bodyweight – selectie
+        { name: "Push-Up", pattern: "push", tags: ["push","horizontal","grind","pushup"], equipment: "bodyweight" },
+        { name: "Handstand/Pike Push-Up", pattern: "push", tags: ["push","vertical","grind"], equipment: "bodyweight" },
+        { name: "Pistol Squat", pattern: "squat", tags: ["squat","grind","single-leg"], equipment: "bodyweight" },
+        { name: "Burpee", pattern: "hinge", tags: ["hinge","ballistic"], equipment: "bodyweight" },
+        { name: "Box Jump", pattern: "squat", tags: ["squat","ballistic"], equipment: "bodyweight" },
+
+        // Machines – Squat-patroon
+        { name: "Leg Press (Machine)", pattern: "squat", tags: ["squat","grind","machine"], equipment: "machine" },
+        { name: "Pendulum Squat (Machine)", pattern: "squat", tags: ["squat","grind","machine"], equipment: "machine" },
+        { name: "V-Squat (Machine)", pattern: "squat", tags: ["squat","grind","machine"], equipment: "machine" },
+        { name: "Leg Extension (Machine)", pattern: "squat", tags: ["squat","grind","machine"], equipment: "machine" },
+
+        // Machines – Push-patroon
+        { name: "Chest Press (Machine)", pattern: "push", tags: ["push","horizontal","grind","machine"], equipment: "machine" },
+        { name: "Shoulder Press (Machine)", pattern: "push", tags: ["push","vertical","grind","machine"], equipment: "machine" },
+        { name: "Pec Deck (Machine)", pattern: "push", tags: ["push","horizontal","grind","machine"], equipment: "machine" },
+        { name: "Lateral Raise (Machine)", pattern: "push", tags: ["push","grind","machine"], equipment: "machine" },
+        { name: "Tricep Dip (Machine)", pattern: "push", tags: ["push","grind","machine"], equipment: "machine" },
+
+        // Machines – Pull-patroon
+        { name: "Compound Row (Machine)", pattern: "pull", tags: ["pull","horizontal","grind","machine"], equipment: "machine" },
+        { name: "Lat Pulldown (Machine)", pattern: "pull", tags: ["pull","vertical","grind","machine"], equipment: "machine" },
+        { name: "Pullover (Machine)", pattern: "pull", tags: ["pull","vertical","grind","machine"], equipment: "machine" },
+        { name: "Bicep Curl (Machine)", pattern: "pull", tags: ["pull","grind","machine"], equipment: "machine" },
+
+        // Machines – Hinge/Isolatie
+        { name: "Back Extension (Machine)", pattern: "hinge", tags: ["hinge","grind","machine","machine-back"], equipment: "machine" },
+        { name: "Lying Leg Curl (Machine)", pattern: "hinge", tags: ["hinge","grind","machine"], equipment: "machine" },
+        { name: "Seated Leg Curl (Machine)", pattern: "hinge", tags: ["hinge","grind","machine"], equipment: "machine" },
+        { name: "Hip Abduction (Machine)", pattern: "hinge", tags: ["hinge","grind","machine"], equipment: "machine" },
+        { name: "Hip Adduction (Machine)", pattern: "hinge", tags: ["hinge","grind","machine"], equipment: "machine" }
       ],
 
       intermediate: [
-        { name: "Front Walking Lunge (Goblet)", pattern: "lunge", tags: ["lunge","grind","symmetric-load"] },
-        { name: "Front Walking Lunge (Single Rack)", pattern: "lunge", tags: ["lunge","grind","asymmetric-load"] },
-        { name: "Front Walking Lunge (Double Rack)", pattern: "lunge", tags: ["lunge","grind","symmetric-load"] },
-        { name: "Reverse Lunge (Goblet)", pattern: "lunge", tags: ["lunge","grind","symmetric-load"] },
-        { name: "Side Lunge (Goblet)", pattern: "lunge", tags: ["lunge","grind","symmetric-load"] },
-        { name: "Curtsy Lunge (Goblet)", pattern: "lunge", tags: ["lunge","grind","symmetric-load"] },
-        { name: "Front Walking Lunge (Single Overhead)", pattern: "lunge", tags: ["lunge","grind","overhead","asymmetric-load"] },
-        { name: "Athletic Reverse Lunge + Clean", pattern: "lunge", tags: ["lunge","ballistic","asymmetric-load","hinge-based"] },
+        { name: "Front Walking Lunge (Goblet)", pattern: "lunge", tags: ["lunge","grind","symmetric-load"], equipment: "kb" },
+        { name: "Front Walking Lunge (Single Rack)", pattern: "lunge", tags: ["lunge","grind","asymmetric-load"], equipment: "kb" },
+        { name: "Front Walking Lunge (Double Rack)", pattern: "lunge", tags: ["lunge","grind","symmetric-load"], equipment: "kb" },
+        { name: "Reverse Lunge (Goblet)", pattern: "lunge", tags: ["lunge","grind","symmetric-load"], equipment: "kb" },
+        { name: "Side Lunge (Goblet)", pattern: "lunge", tags: ["lunge","grind","symmetric-load"], equipment: "kb" },
+        { name: "Curtsy Lunge (Goblet)", pattern: "lunge", tags: ["lunge","grind","symmetric-load"], equipment: "kb" },
+        { name: "Front Walking Lunge (Single Overhead)", pattern: "lunge", tags: ["lunge","grind","overhead","asymmetric-load"], equipment: "kb" },
+        { name: "Athletic Reverse Lunge + Clean", pattern: "lunge", tags: ["lunge","ballistic","asymmetric-load","hinge-based"], equipment: "kb" },
 
-        { name: "Plank Pull-Through", pattern: "anti-rotation", tags: ["anti-rotation","grind","asymmetric-load"] },
-        { name: "Bird-Dog Pull-Through", pattern: "anti-rotation", tags: ["anti-rotation","grind","asymmetric-load"] },
-        { name: "Half-Kneeling Chop", pattern: "anti-rotation", tags: ["anti-rotation","grind","asymmetric-load"] },
-        { name: "Half-Kneeling Lift", pattern: "anti-rotation", tags: ["anti-rotation","grind","asymmetric-load"] },
-        { name: "Shoulder Tap Plank", pattern: "anti-rotation", tags: ["anti-rotation","grind","asymmetric-load"] },
-        { name: "Bear Crawl", pattern: "anti-rotation", tags: ["anti-rotation","grind","asymmetric-load"] },
-        { name: "Hardstyle Plank", pattern: "anti-rotation", tags: ["anti-rotation","grind"] },
-        { name: "KB Pallof Press (Rack)", pattern: "anti-rotation", tags: ["anti-rotation","grind","asymmetric-load"] },
-        { name: "Around-the-World (Grind)", pattern: "anti-rotation", tags: ["anti-rotation","grind","asymmetric-load"] },
+        { name: "Plank Pull-Through", pattern: "anti-rotation", tags: ["anti-rotation","grind","asymmetric-load"], equipment: "kb" },
+        { name: "Bird-Dog Pull-Through", pattern: "anti-rotation", tags: ["anti-rotation","grind","asymmetric-load"], equipment: "kb" },
+        { name: "Half-Kneeling Chop", pattern: "anti-rotation", tags: ["anti-rotation","grind","asymmetric-load"], equipment: "kb" },
+        { name: "Half-Kneeling Lift", pattern: "anti-rotation", tags: ["anti-rotation","grind","asymmetric-load"], equipment: "kb" },
+        { name: "Shoulder Tap Plank", pattern: "anti-rotation", tags: ["anti-rotation","grind","asymmetric-load"], equipment: "bodyweight" },
+        { name: "Bear Crawl", pattern: "anti-rotation", tags: ["anti-rotation","grind","asymmetric-load"], equipment: "bodyweight" },
+        { name: "Hardstyle Plank", pattern: "anti-rotation", tags: ["anti-rotation","grind"], equipment: "bodyweight" },
+        { name: "KB Pallof Press (Rack)", pattern: "anti-rotation", tags: ["anti-rotation","grind","asymmetric-load"], equipment: "kb" },
+        { name: "Around-the-World (Grind)", pattern: "anti-rotation", tags: ["anti-rotation","grind","asymmetric-load"], equipment: "kb" },
 
-        { name: "Bottom-Loaded Windmill", pattern: "rotation", tags: ["rotation","grind","hinge-based","asymmetric-load"] },
-        { name: "Top-Loaded Windmill", pattern: "rotation", tags: ["rotation","grind","hinge-based","overhead","asymmetric-load"] },
-        { name: "Bent Press", pattern: "rotation", tags: ["rotation","grind","overhead","asymmetric-load"] },
-        { name: "Russian Twist", pattern: "rotation", tags: ["rotation","grind","asymmetric-load"] },
-        { name: "Figure 8", pattern: "rotation", tags: ["rotation","ballistic","asymmetric-load"] },
-        { name: "Side Swing", pattern: "rotation", tags: ["rotation","ballistic","asymmetric-load"] },
-        { name: "Rotational Clean", pattern: "rotation", tags: ["rotation","ballistic","asymmetric-load","hinge-based"] }
+        { name: "Bottom-Loaded Windmill", pattern: "rotation", tags: ["rotation","grind","hinge-based","asymmetric-load"], equipment: "kb" },
+        { name: "Top-Loaded Windmill", pattern: "rotation", tags: ["rotation","grind","hinge-based","overhead","asymmetric-load"], equipment: "kb" },
+        { name: "Bent Press", pattern: "rotation", tags: ["rotation","grind","overhead","asymmetric-load"], equipment: "kb" },
+        { name: "Russian Twist", pattern: "rotation", tags: ["rotation","grind","asymmetric-load"], equipment: "kb" },
+        { name: "Figure 8", pattern: "rotation", tags: ["rotation","ballistic","asymmetric-load"], equipment: "kb" },
+        { name: "Side Swing", pattern: "rotation", tags: ["rotation","ballistic","asymmetric-load"], equipment: "kb" },
+        { name: "Rotational Clean", pattern: "rotation", tags: ["rotation","ballistic","asymmetric-load","hinge-based"], equipment: "kb" }
       ],
 
       advanced: [
-        { name: "Club 360", pattern: "club-mace", tags: ["club-mace","grind","overhead","asymmetric-load"] },
-        { name: "Club 10-2", pattern: "club-mace", tags: ["club-mace","grind","overhead","asymmetric-load"] },
-        { name: "Barbarian Squat", pattern: "club-mace", tags: ["club-mace","grind","asymmetric-load"] },
-        { name: "Dynamic Switch", pattern: "club-mace", tags: ["club-mace","grind","asymmetric-load"] },
-        { name: "In & Out Mills", pattern: "club-mace", tags: ["club-mace","grind","asymmetric-load","overhead"] },
-        { name: "Shield Cast", pattern: "club-mace", tags: ["club-mace","grind","overhead","asymmetric-load"] },
-        { name: "Swipe", pattern: "club-mace", tags: ["club-mace","grind","overhead","asymmetric-load"] }
+        // Club / Mace (Thier-modus)
+        { name: "Club 360", pattern: "club-mace", tags: ["club-mace","grind","overhead","asymmetric-load"], equipment: "kb" },
+        { name: "Club 10-2", pattern: "club-mace", tags: ["club-mace","grind","overhead","asymmetric-load"], equipment: "kb" },
+        { name: "Barbarian Squat", pattern: "club-mace", tags: ["club-mace","grind","asymmetric-load"], equipment: "kb" },
+        { name: "Dynamic Switch", pattern: "club-mace", tags: ["club-mace","grind","asymmetric-load"], equipment: "kb" },
+        { name: "In & Out Mills", pattern: "club-mace", tags: ["club-mace","grind","asymmetric-load","overhead"], equipment: "kb" },
+        { name: "Shield Cast", pattern: "club-mace", tags: ["club-mace","grind","overhead","asymmetric-load"], equipment: "kb" },
+        { name: "Swipe", pattern: "club-mace", tags: ["club-mace","grind","overhead","asymmetric-load"], equipment: "kb" }
+      ],
+
+      // Hypertrofie-isolatie
+      isoBiceps: [
+        { name: "Barbell Curl", pattern: "iso-biceps", tags: ["iso","grind"], equipment: "barbell" },
+        { name: "Incline Biceps Curl", pattern: "iso-biceps", tags: ["iso","grind"], equipment: "kb" },
+        { name: "Hammer Curl", pattern: "iso-biceps", tags: ["iso","grind"], equipment: "kb" },
+        { name: "Bayesian Curl", pattern: "iso-biceps", tags: ["iso","grind"], equipment: "machine" }
+      ],
+      isoTriceps: [
+        { name: "Skull Crusher", pattern: "iso-triceps", tags: ["iso","grind"], equipment: "barbell" },
+        { name: "Push Down", pattern: "iso-triceps", tags: ["iso","grind"], equipment: "machine" },
+        { name: "Kickback", pattern: "iso-triceps", tags: ["iso","grind"], equipment: "kb" },
+        { name: "Overhead Extension", pattern: "iso-triceps", tags: ["iso","grind"], equipment: "kb" }
       ],
 
       finishersA: [
-        { name: "One-Arm Swing", pattern: "finisherA", tags: ["finisherA","ballistic","ballistic-hinge","hinge-based","asymmetric-load"] },
-        { name: "Two-Arm Swing", pattern: "finisherA", tags: ["finisherA","ballistic","ballistic-hinge","hinge-based","symmetric-load"] },
-        { name: "Hand-to-Hand Swing", pattern: "finisherA", tags: ["finisherA","ballistic","ballistic-hinge","hinge-based","asymmetric-load"] },
-        { name: "Snatch", pattern: "finisherA", tags: ["finisherA","ballistic","ballistic-hinge","hinge-based","asymmetric-load"] },
-        { name: "Double Snatch", pattern: "finisherA", tags: ["finisherA","ballistic","ballistic-hinge","hinge-based","symmetric-load"] },
-        { name: "Double Swing", pattern: "finisherA", tags: ["finisherA","ballistic","ballistic-hinge","hinge-based","symmetric-load"] },
-        { name: "Low Pull Snatch", pattern: "finisherA", tags: ["finisherA","ballistic","ballistic-hinge","hinge-based","asymmetric-load"] }
+        { name: "One-Arm Swing", pattern: "finisherA", tags: ["finisherA","ballistic","ballistic-hinge","hinge-based","asymmetric-load"], equipment: "kb" },
+        { name: "Two-Arm Swing", pattern: "finisherA", tags: ["finisherA","ballistic","ballistic-hinge","hinge-based","symmetric-load"], equipment: "kb" },
+        { name: "Hand-to-Hand Swing", pattern: "finisherA", tags: ["finisherA","ballistic","ballistic-hinge","hinge-based","asymmetric-load"], equipment: "kb" },
+        { name: "Snatch", pattern: "finisherA", tags: ["finisherA","ballistic","ballistic-hinge","hinge-based","asymmetric-load"], equipment: "kb" },
+        { name: "Double Snatch", pattern: "finisherA", tags: ["finisherA","ballistic","ballistic-hinge","hinge-based","symmetric-load"], equipment: "kb" },
+        { name: "Double Swing", pattern: "finisherA", tags: ["finisherA","ballistic","ballistic-hinge","hinge-based","symmetric-load"], equipment: "kb" },
+        { name: "Low Pull Snatch", pattern: "finisherA", tags: ["finisherA","ballistic","ballistic-hinge","hinge-based","asymmetric-load"], equipment: "kb" }
       ],
 
       finishersB: [
-        { name: "Single KB Push Press", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","asymmetric-load"] },
-        { name: "Double KB Push Press", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","symmetric-load"] },
-        { name: "Single KB Viking Push Press", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","asymmetric-load"] },
-        { name: "Double KB Viking Push Press", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","symmetric-load"] },
-        { name: "Single KB Clean & Push Press", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","asymmetric-load","hinge-based"] },
-        { name: "Double KB Clean & Push Press", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","symmetric-load","hinge-based"] },
-        { name: "Single KB Push Jerk", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","asymmetric-load"] },
-        { name: "Double KB Push Jerk", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","symmetric-load"] },
-        { name: "Single KB Clean & Jerk", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","asymmetric-load","hinge-based"] },
-        { name: "Double KB Clean & Jerk", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","symmetric-load","hinge-based"] }
+        { name: "Single KB Push Press", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","asymmetric-load"], equipment: "kb" },
+        { name: "Double KB Push Press", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","symmetric-load"], equipment: "kb" },
+        { name: "Single KB Viking Push Press", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","asymmetric-load"], equipment: "kb" },
+        { name: "Double KB Viking Push Press", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","symmetric-load"], equipment: "kb" },
+        { name: "Single KB Clean & Push Press", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","asymmetric-load","hinge-based"], equipment: "kb" },
+        { name: "Double KB Clean & Push Press", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","symmetric-load","hinge-based"], equipment: "kb" },
+        { name: "Single KB Push Jerk", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","asymmetric-load"], equipment: "kb" },
+        { name: "Double KB Push Jerk", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","symmetric-load"], equipment: "kb" },
+        { name: "Single KB Clean & Jerk", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","asymmetric-load","hinge-based"], equipment: "kb" },
+        { name: "Double KB Clean & Jerk", pattern: "finisherB", tags: ["finisherB","ballistic","vertical","symmetric-load","hinge-based"], equipment: "kb" }
       ],
 
       finishersC: [
-        { name: "Single Suitcase Carry", pattern: "finisherC", tags: ["finisherC","carry","asymmetric-load"] },
-        { name: "Double Suitcase Carry", pattern: "finisherC", tags: ["finisherC","carry","symmetric-load"] },
-        { name: "Single Front Rack Carry", pattern: "finisherC", tags: ["finisherC","carry","asymmetric-load"] },
-        { name: "Double Front Rack Carry", pattern: "finisherC", tags: ["finisherC","carry","symmetric-load"] },
-        { name: "Single Overhead Carry", pattern: "finisherC", tags: ["finisherC","carry","overhead","asymmetric-load"] },
-        { name: "Double Overhead Carry", pattern: "finisherC", tags: ["finisherC","carry","overhead","symmetric-load"] },
-        { name: "Cook Drill", pattern: "finisherC", tags: ["finisherC","carry","overhead","asymmetric-load"] },
-        { name: "Uneven Overhead + Suitcase Carry", pattern: "finisherC", tags: ["finisherC","carry","overhead","asymmetric-load"] }
+        { name: "Single Suitcase Carry", pattern: "finisherC", tags: ["finisherC","carry","asymmetric-load"], equipment: "kb" },
+        { name: "Double Suitcase Carry", pattern: "finisherC", tags: ["finisherC","carry","symmetric-load"], equipment: "kb" },
+        { name: "Single Front Rack Carry", pattern: "finisherC", tags: ["finisherC","carry","asymmetric-load"], equipment: "kb" },
+        { name: "Double Front Rack Carry", pattern: "finisherC", tags: ["finisherC","carry","symmetric-load"], equipment: "kb" },
+        { name: "Single Overhead Carry", pattern: "finisherC", tags: ["finisherC","carry","overhead","asymmetric-load"], equipment: "kb" },
+        { name: "Double Overhead Carry", pattern: "finisherC", tags: ["finisherC","carry","overhead","symmetric-load"], equipment: "kb" },
+        { name: "Cook Drill", pattern: "finisherC", tags: ["finisherC","carry","overhead","asymmetric-load"], equipment: "kb" },
+        { name: "Uneven Overhead + Suitcase Carry", pattern: "finisherC", tags: ["finisherC","carry","overhead","asymmetric-load"], equipment: "kb" }
       ]
     };
 
@@ -933,43 +1061,41 @@
     };
 
     const BREATHING_CIRCUITS = [
-  {
-    id: "c1",
-    label: "Circuit 1 (sessies 1–8)",
-    drills: [
-      "Supine FRC – startmeting",
-      "Side Lying Crocodile Breathing · 10 ademhalingen (3-1-6-2)",
-      "Hook Lying Crocodile Breathing · 10 ademhalingen (3-1-6-2)",
-      "T-Spine Rotation with Rib Grab · 2×10 (3-1-6-2)",
-      "Foot to Hand Cat Cow · 2×10 (3-1-6-2)",
-      "Supine FRC – eindmeting"
-    ]
-  },
-  {
-    id: "c2",
-    label: "Circuit 2 (sessies 9–16)",
-    drills: [
-      "Quadruped FRC – startmeting",
-      "Foot to Hand Cat Cow · 2×10 (3-1-6-2)",
-      "Half Kneeling Turns · 2×10 (3× hoofd, 3× schouders, 3× schouders + armen)",
-      "Toe Touch Progression · 10× hielen verhoogd + 10× tenen verhoogd",
-      "Quadruped FRC – eindmeting"
-    ]
-  }
-];
+      {
+        id: "c1",
+        label: "Circuit 1 (sessies 1–8)",
+        drills: [
+          "Supine FRC – startmeting",
+          "Side Lying Crocodile Breathing · 10 ademhalingen (3-1-6-2)",
+          "Hook Lying Crocodile Breathing · 10 ademhalingen (3-1-6-2)",
+          "T-Spine Rotation with Rib Grab · 2×10 (3-1-6-2)",
+          "Foot to Hand Cat Cow · 2×10 (3-1-6-2)",
+          "Supine FRC – eindmeting"
+        ]
+      },
+      {
+        id: "c2",
+        label: "Circuit 2 (sessies 9–16)",
+        drills: [
+          "Quadruped FRC – startmeting",
+          "Foot to Hand Cat Cow · 2×10 (3-1-6-2)",
+          "Half Kneeling Turns · 2×10 (3× hoofd, 3× schouders, 3× schouders + armen)",
+          "Toe Touch Progression · 10× hielen verhoogd + 10× tenen verhoogd",
+          "Quadruped FRC – eindmeting"
+        ]
+      }
+    ];
 
-const BREATHING_CORRECTIVE = {
-  pattern: "Breathing Restoration",
-  focus: "Prioriteer ademhaling: normaliseer patroon, volume en controle voordat je harder gaat belasten.",
-  circuits: BREATHING_CIRCUITS
-};
+    const BREATHING_CORRECTIVE = {
+      pattern: "Breathing Restoration",
+      focus: "Prioriteer ademhaling: normaliseer patroon, volume en controle voordat je harder gaat belasten.",
+      circuits: BREATHING_CIRCUITS
+    };
 
     function computeBreathingStatus(b) {
       if (!b) return "unknown";
       let bad = false, acceptable = false, good = false;
 
-      // Breathing questionnaire (0–3 per vraag)
-      // 2–3 = rood (bad), 1 = geel (acceptable), 0 = groen (good)
       const qs = [b.q1, b.q2, b.q3].filter(v => typeof v === "number");
       qs.forEach(v => {
         if (v >= 2) bad = true;
@@ -977,14 +1103,12 @@ const BREATHING_CORRECTIVE = {
         else if (v === 0) good = true;
       });
 
-      // FRC: Red < 25s, Yellow 26–35s, Green > 35s
       if (typeof b.frcHold === "number") {
         if (b.frcHold < 25) bad = true;
         else if (b.frcHold <= 35) acceptable = true;
         else good = true;
       }
 
-      // TLC: Red < 35s, Yellow 36–60s, Green > 60s
       if (typeof b.tlcHold === "number") {
         if (b.tlcHold < 35) bad = true;
         else if (b.tlcHold <= 60) acceptable = true;
@@ -1054,7 +1178,10 @@ const BREATHING_CORRECTIVE = {
     }
 
     function exerciseAllowed(ex, fms) {
-      const t = (tag) => ex.tags.includes(tag);
+      const t = (tag) => ex.tags && ex.tags.includes(tag);
+
+      // Barbell basis: TSPU > 1 voor ALLE barbell-oefeningen
+      if (ex.equipment === "barbell" && fms.TSPU <= 1) return false;
 
       if (fms.shoulderPain && ex.pattern === "push") return false;
       if (t("squat") && fms.DSQ <= 1) return false;
@@ -1076,6 +1203,10 @@ const BREATHING_CORRECTIVE = {
         if (fms.SM <= 1 || fms.TSPU <= 1) return false;
         if (t("hinge-based") && fms.ASLR <= 1) return false;
       }
+
+      // Machines: specifieke blokkades
+      if (t("machine-back") && fms.tspuPain) return false;
+
       return true;
     }
 
@@ -1085,8 +1216,7 @@ const BREATHING_CORRECTIVE = {
       return arr[idx];
     }
 
-    
-function shuffleArray(arr) {
+    function shuffleArray(arr) {
       const copy = arr.slice();
       for (let i = copy.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -1097,7 +1227,7 @@ function shuffleArray(arr) {
       return copy;
     }
 
-function generateSessionForClient(client, lastSession) {
+    function generateSessionForClient(client, lastSession) {
       const f = client.fms || {};
       const fms = {
         ASLR: Number(f.ASLR ?? 3),
@@ -1113,18 +1243,59 @@ function generateSessionForClient(client, lastSession) {
         rsPain: !!f.rsPain
       };
 
+      // Plan/mode + equipment
+      const plan = client.plan || {};
+      const equip = plan.equip || {};
+      const planMode = plan.mode || "thier";
+      const equipState = {
+        kb: equip.kb !== false,           // default: kettlebell aan
+        barbell: !!equip.barbell,
+        bodyweight: !!equip.bodyweight,
+        machine: !!equip.machine
+      };
+
+      function equipmentAllowed(ex) {
+        const eq = ex.equipment || "kb";
+        if (eq === "kb") return equipState.kb;
+        if (eq === "barbell") return equipState.barbell;
+        if (eq === "bodyweight" || eq === "bw") return equipState.bodyweight;
+        if (eq === "machine") return equipState.machine;
+        return true;
+      }
+
       const breathing = client.breathing || {};
       const sfma = client.sfma || {};
       const corrInfo = getPrimaryCorrective(fms, breathing, sfma);
+
+      // Hypertrofie rep-cyclus
+      let repMainNote = "3–5 rondes · 5–7 herhalingen per oefening";
+      if (planMode === "hypertrophy") {
+        const cycle = plan.hypertrophyCycle || 0;
+        const idx = cycle % 3;
+        if (idx === 0) repMainNote = "Hypertrofie-modus · 3–4 rondes · 4–7 herhalingen (zwaar)";
+        else if (idx === 1) repMainNote = "Hypertrofie-modus · 3–4 rondes · 8–11 herhalingen (medium)";
+        else repMainNote = "Hypertrofie-modus · 3–4 rondes · 12–15 herhalingen (licht)";
+      } else if (planMode === "strength") {
+        repMainNote = "Kracht-modus · 3–5 rondes · 5–7 herhalingen voor het main circuit (Barbell main lift: 3–5×3–5).";
+      }
 
       const result = {
         corrective: corrInfo.corrective,
         breathingStatus: corrInfo.breathingStatus,
         movementStatus: corrInfo.movementStatus,
         breathingSuggestion: corrInfo.breathingSuggestion,
+        mode: planMode,
+        repMainNote,
+        barbellMain: null,
         main: [],
         intermediate: [],
-        advanced: { secondaryPush: null, secondaryPull: null, clubMace: null },
+        advanced: {
+          secondaryPush: null,
+          secondaryPull: null,
+          clubMace: null,
+          bicepsIso: null,
+          tricepsIso: null
+        },
         finisher: null,
         notes: []
       };
@@ -1134,9 +1305,9 @@ function generateSessionForClient(client, lastSession) {
       const lastAdvancedNames = Array.isArray(last.advancedNames) ? last.advancedNames : [];
       const lastFinisherName = last.finisherName || null;
 
+      // Main pool gefilterd op equipment + FMS
+      const mainPool = EXERCISES.main.filter(ex => equipmentAllowed(ex) && exerciseAllowed(ex, fms));
 
-
-            const mainPool = EXERCISES.main.filter(ex => exerciseAllowed(ex, fms));
       function pickByPattern(pattern) {
         let pool = mainPool.filter(ex => ex.pattern === pattern);
         if (lastMainNames.length) {
@@ -1144,7 +1315,24 @@ function generateSessionForClient(client, lastSession) {
           if (nonRepeat.length) pool = nonRepeat;
         }
         return randomChoice(pool);
-      }      const squatEx = pickByPattern("squat");
+      }
+
+      // Optional barbell main lift bij Kracht-modus
+      if (planMode === "strength") {
+        let barbellPool = mainPool.filter(ex => ex.equipment === "barbell");
+        if (lastAdvancedNames.length) {
+          const nonRepeat = barbellPool.filter(ex => !lastAdvancedNames.includes(ex.name));
+          if (nonRepeat.length) barbellPool = nonRepeat;
+        }
+        const bb = randomChoice(barbellPool);
+        if (bb) {
+          result.barbellMain = bb;
+        } else {
+          result.notes.push("Geen barbell main lift beschikbaar (FMS, apparatuur of selectie).");
+        }
+      }
+
+      const squatEx = pickByPattern("squat");
       const hingeEx = pickByPattern("hinge");
       const pushEx = pickByPattern("push");
       const pullEx = pickByPattern("pull");
@@ -1154,14 +1342,18 @@ function generateSessionForClient(client, lastSession) {
       if (pushEx) result.main.push({ slot: "Push", ex: pushEx });
       if (pullEx) result.main.push({ slot: "Pull", ex: pullEx });
 
-      if (!squatEx) result.notes.push("Geen squat beschikbaar (mogelijk DSQ ≤ 1).");
-      if (!hingeEx) result.notes.push("Geen hinge beschikbaar (mogelijk ASLR ≤ 1).");
+      if (!squatEx) result.notes.push("Geen squat beschikbaar (mogelijk DSQ ≤ 1 of geen geschikte oefening binnen de gekozen apparatuur).");
+      if (!hingeEx) result.notes.push("Geen hinge beschikbaar (mogelijk ASLR ≤ 1 of geen geschikte oefening binnen de gekozen apparatuur).");
       if (!pushEx) result.notes.push("Geen push beschikbaar (shoulder pain of SM/FMS restricties).");
       if (!pullEx) result.notes.push("Geen pull beschikbaar (SM/ASLR restricties).");
 
-      if (result.main.length > 1) {
+      // Shuffle main behalve bij Hypertrofie (daar wil je Push/Pull herkenbaar houden)
+      if (result.main.length > 1 && planMode !== "hypertrophy") {
         result.main = shuffleArray(result.main);
-      }const intermPool = EXERCISES.intermediate.filter(ex => exerciseAllowed(ex, fms));
+      }
+
+      // Intermediate
+      const intermPool = EXERCISES.intermediate.filter(ex => equipmentAllowed(ex) && exerciseAllowed(ex, fms));
 
       function pickIntermediate(pattern) {
         let pool = intermPool.filter(ex => ex.pattern === pattern);
@@ -1184,71 +1376,102 @@ function generateSessionForClient(client, lastSession) {
       if (!antiRot && fms.RS <= 1) result.notes.push("Anti-rotatie geblokkeerd (RS ≤ 1).");
       if (!rot && fms.RS <= 1) result.notes.push("Rotatie geblokkeerd (RS ≤ 1).");
 
-      if (fms.SM > 1 && pushEx) {
-        const mainIsVerticalPush = pushEx.tags.includes("vertical");
-        const orientationTag = mainIsVerticalPush ? "horizontal" : "vertical";
-        let pushPool = EXERCISES.main.filter(
-          ex => ex.pattern === "push" &&
-                ex.tags.includes(orientationTag) &&
-                ex.name !== pushEx.name &&
-                exerciseAllowed(ex, fms)
-        );
-        if (lastAdvancedNames.length) {
-          const nonRepeat = pushPool.filter(ex => !lastAdvancedNames.includes(ex.name));
-          if (nonRepeat.length) pushPool = nonRepeat;
+      // Advanced logica per modus
+      if (planMode === "thier") {
+        // Secondary Push/Pull (andere oriëntatie) + Club/Mace
+        if (fms.SM > 1 && pushEx) {
+          const mainIsVerticalPush = pushEx.tags.includes("vertical");
+          const orientationTag = mainIsVerticalPush ? "horizontal" : "vertical";
+          let pushPool = EXERCISES.main.filter(
+            ex => ex.pattern === "push" &&
+                  ex.tags.includes(orientationTag) &&
+                  ex.name !== pushEx.name &&
+                  equipmentAllowed(ex) &&
+                  exerciseAllowed(ex, fms)
+          );
+          if (lastAdvancedNames.length) {
+            const nonRepeat = pushPool.filter(ex => !lastAdvancedNames.includes(ex.name));
+            if (nonRepeat.length) pushPool = nonRepeat;
+          }
+          result.advanced.secondaryPush = randomChoice(pushPool) || null;
         }
-        result.advanced.secondaryPush = randomChoice(pushPool) || null;
-      }
-      if (fms.SM > 1 && pullEx) {
-        const mainIsVerticalPull = pullEx.tags.includes("vertical");
-        const orientationTag = mainIsVerticalPull ? "horizontal" : "vertical";
-        let pullPool = EXERCISES.main.filter(
-          ex => ex.pattern === "pull" &&
-                ex.tags.includes(orientationTag) &&
-                ex.name !== pullEx.name &&
-                exerciseAllowed(ex, fms)
-        );
-        if (lastAdvancedNames.length) {
-          const nonRepeat = pullPool.filter(ex => !lastAdvancedNames.includes(ex.name));
-          if (nonRepeat.length) pullPool = nonRepeat;
+        if (fms.SM > 1 && pullEx) {
+          const mainIsVerticalPull = pullEx.tags.includes("vertical");
+          const orientationTag = mainIsVerticalPull ? "horizontal" : "vertical";
+          let pullPool = EXERCISES.main.filter(
+            ex => ex.pattern === "pull" &&
+                  ex.tags.includes(orientationTag) &&
+                  ex.name !== pullEx.name &&
+                  equipmentAllowed(ex) &&
+                  exerciseAllowed(ex, fms)
+          );
+          if (lastAdvancedNames.length) {
+            const nonRepeat = pullPool.filter(ex => !lastAdvancedNames.includes(ex.name));
+            if (nonRepeat.length) pullPool = nonRepeat;
+          }
+          result.advanced.secondaryPull = randomChoice(pullPool) || null;
         }
-        result.advanced.secondaryPull = randomChoice(pullPool) || null;
+
+        let clubPool = EXERCISES.advanced.filter(ex => equipmentAllowed(ex) && exerciseAllowed(ex, fms));
+        if (lastAdvancedNames.length) {
+          const nonRepeatClub = clubPool.filter(ex => !lastAdvancedNames.includes(ex.name));
+          if (nonRepeatClub.length) clubPool = nonRepeatClub;
+        }
+        result.advanced.clubMace = randomChoice(clubPool) || null;
+      } else if (planMode === "hypertrophy") {
+        // Hypertrofie: Biceps + Triceps isolatie
+        let biPool = EXERCISES.isoBiceps.filter(ex => equipmentAllowed(ex) && exerciseAllowed(ex, fms));
+        let triPool = EXERCISES.isoTriceps.filter(ex => equipmentAllowed(ex) && exerciseAllowed(ex, fms));
+
+        if (lastAdvancedNames.length) {
+          const nonRepeatBi = biPool.filter(ex => !lastAdvancedNames.includes(ex.name));
+          if (nonRepeatBi.length) biPool = nonRepeatBi;
+          const nonRepeatTri = triPool.filter(ex => !lastAdvancedNames.includes(ex.name));
+          if (nonRepeatTri.length) triPool = nonRepeatTri;
+        }
+
+        result.advanced.bicepsIso = randomChoice(biPool) || null;
+        result.advanced.tricepsIso = randomChoice(triPool) || null;
+      } else if (planMode === "strength") {
+        // Geen advanced in kracht-modus
+        result.advanced.secondaryPush = null;
+        result.advanced.secondaryPull = null;
+        result.advanced.clubMace = null;
       }
 
-      let clubPool = EXERCISES.advanced.filter(ex => exerciseAllowed(ex, fms));
-      if (lastAdvancedNames.length) {
-        const nonRepeatClub = clubPool.filter(ex => !lastAdvancedNames.includes(ex.name));
-        if (nonRepeatClub.length) clubPool = nonRepeatClub;
-      }
-      result.advanced.clubMace = randomChoice(clubPool) || null;
-
-      const finAok = EXERCISES.finishersA.some(ex => exerciseAllowed(ex, fms));
-      const finBok = EXERCISES.finishersB.some(ex => exerciseAllowed(ex, fms));
-      const finCok = EXERCISES.finishersC.some(ex => exerciseAllowed(ex, fms));
-
-      let availableTypes = [];
-      if (finAok) availableTypes.push("A");
-      if (finBok) availableTypes.push("B");
-      if (finCok) availableTypes.push("C");
-
-      if (availableTypes.length === 0) {
+      // Finisher
+      if (planMode === "strength") {
         result.finisher = { type: null, ex: null };
-        result.notes.push("Geen finisher beschikbaar op basis van huidige FMS (ASLR/TSPU/SM/RS restricties).");
+        result.notes.push("Kracht-modus: geen finisher gepland (focus op kwaliteit en herstel).");
       } else {
-        const chosenType = randomChoice(availableTypes);
-        let pool;
-        if (chosenType === "A") pool = EXERCISES.finishersA;
-        else if (chosenType === "B") pool = EXERCISES.finishersB;
-        else pool = EXERCISES.finishersC;
+        const finAok = EXERCISES.finishersA.some(ex => equipmentAllowed(ex) && exerciseAllowed(ex, fms));
+        const finBok = EXERCISES.finishersB.some(ex => equipmentAllowed(ex) && exerciseAllowed(ex, fms));
+        const finCok = EXERCISES.finishersC.some(ex => equipmentAllowed(ex) && exerciseAllowed(ex, fms));
 
-        let candidates = pool.filter(e => exerciseAllowed(e, fms));
-        if (lastFinisherName) {
-          const nonRepeat = candidates.filter(e => e.name !== lastFinisherName);
-          if (nonRepeat.length) candidates = nonRepeat;
+        let availableTypes = [];
+        if (finAok) availableTypes.push("A");
+        if (finBok) availableTypes.push("B");
+        if (finCok) availableTypes.push("C");
+
+        if (availableTypes.length === 0) {
+          result.finisher = { type: null, ex: null };
+          result.notes.push("Geen finisher beschikbaar op basis van huidige FMS en apparatuur.");
+        } else {
+          const chosenType = randomChoice(availableTypes);
+          let pool;
+          if (chosenType === "A") pool = EXERCISES.finishersA;
+          else if (chosenType === "B") pool = EXERCISES.finishersB;
+          else pool = EXERCISES.finishersC;
+
+          let candidates = pool.filter(e => equipmentAllowed(e) && exerciseAllowed(e, fms));
+          if (lastFinisherName) {
+            const nonRepeat = candidates.filter(e => e.name !== lastFinisherName);
+            if (nonRepeat.length) candidates = nonRepeat;
+          }
+
+          const ex = randomChoice(candidates);
+          result.finisher = { type: chosenType, ex };
         }
-
-        const ex = randomChoice(candidates);
-        result.finisher = { type: chosenType, ex };
       }
 
       if (result.breathingSuggestion) {
@@ -1264,6 +1487,7 @@ function generateSessionForClient(client, lastSession) {
     const newClientName = document.getElementById("newClientName");
     const saveClientBtn = document.getElementById("saveClientBtn");
     const activeClientBadge = document.getElementById("activeClientBadge");
+    const modeBadge = document.getElementById("modeBadge");
 
     const fmsASLR = document.getElementById("fmsASLR");
     const fmsSM = document.getElementById("fmsSM");
@@ -1302,6 +1526,15 @@ function generateSessionForClient(client, lastSession) {
     const sfmaSingleL = document.getElementById("sfmaSingleL");
     const sfmaDeep = document.getElementById("sfmaDeep");
 
+    // Plan DOM
+    const planModeThier = document.getElementById("planModeThier");
+    const planModeHypertrophy = document.getElementById("planModeHypertrophy");
+    const planModeStrength = document.getElementById("planModeStrength");
+    const planEquipKB = document.getElementById("planEquipKB");
+    const planEquipBB = document.getElementById("planEquipBB");
+    const planEquipBW = document.getElementById("planEquipBW");
+    const planEquipMachine = document.getElementById("planEquipMachine");
+
     const saveFmsBtn = document.getElementById("saveFmsBtn");
     const generateBtn = document.getElementById("generateBtn");
     const outputEl = document.getElementById("output");
@@ -1321,6 +1554,7 @@ function generateSessionForClient(client, lastSession) {
         activeClientBadge.textContent = "Geen cliënt geselecteerd";
         activeClientBadge.classList.remove("badge-accent");
         clearAllAssessmentFields();
+        updateModeBadge(null);
         return;
       }
       for (const c of clients) {
@@ -1370,6 +1604,32 @@ function generateSessionForClient(client, lastSession) {
       sfmaSingleR.value = "";
       sfmaSingleL.value = "";
       sfmaDeep.value = "";
+
+      // Plan defaults
+      planModeThier.checked = true;
+      planModeHypertrophy.checked = false;
+      planModeStrength.checked = false;
+      planEquipKB.checked = true;
+      planEquipBB.checked = false;
+      planEquipBW.checked = false;
+      planEquipMachine.checked = false;
+    }
+
+    function updateModeBadge(client) {
+      if (!client || !client.plan) {
+        modeBadge.textContent = "Modus: Thier · KB-only";
+        return;
+      }
+      const mode = client.plan.mode || "thier";
+      const equip = client.plan.equip || {};
+      const parts = [];
+      parts.push("Modus: " + (mode === "hypertrophy" ? "Hypertrofie" : mode === "strength" ? "Kracht" : "Thier"));
+      const eqs = [];
+      if (equip.kb !== false) eqs.push("KB");
+      if (equip.barbell) eqs.push("BB");
+      if (equip.bodyweight) eqs.push("BW");
+      if (equip.machine) eqs.push("Machine");
+      modeBadge.textContent = parts.join(" · ") + " · " + (eqs.length ? eqs.join(" + ") : "geen apparatuur gekozen");
     }
 
     function updateFieldsForCurrentClient() {
@@ -1379,6 +1639,7 @@ function generateSessionForClient(client, lastSession) {
         activeClientBadge.textContent = "Geen cliënt geselecteerd";
         activeClientBadge.classList.remove("badge-accent");
         clearAllAssessmentFields();
+        updateModeBadge(null);
         return;
       }
       activeClientBadge.textContent = client.name;
@@ -1423,6 +1684,21 @@ function generateSessionForClient(client, lastSession) {
       sfmaSingleR.value = s.singleLegR ?? "";
       sfmaSingleL.value = s.singleLegL ?? "";
       sfmaDeep.value = s.deepSquat ?? "";
+
+      const p = client.plan || {};
+      const equip = p.equip || {};
+      const mode = p.mode || "thier";
+
+      planModeThier.checked = mode === "thier";
+      planModeHypertrophy.checked = mode === "hypertrophy";
+      planModeStrength.checked = mode === "strength";
+
+      planEquipKB.checked = equip.kb !== false;
+      planEquipBB.checked = !!equip.barbell;
+      planEquipBW.checked = !!equip.bodyweight;
+      planEquipMachine.checked = !!equip.machine;
+
+      updateModeBadge(client);
     }
 
     addClientBtn.addEventListener("click", () => {
@@ -1434,7 +1710,7 @@ function generateSessionForClient(client, lastSession) {
     saveClientBtn.addEventListener("click", () => {
       const name = newClientName.value.trim();
       if (!name) return;
-      const client = { id: uid(), name, fms: {}, breathing: {}, sfma: {} };
+      const client = { id: uid(), name, fms: {}, breathing: {}, sfma: {}, plan: { mode: "thier", equip: { kb: true }, hypertrophyCycle: 0 } };
       upsertClient(client);
       newClientName.value = "";
       newClientRow.style.display = "none";
@@ -1490,7 +1766,24 @@ function generateSessionForClient(client, lastSession) {
         singleLegL: sfmaSingleL.value || null,
         deepSquat: sfmaDeep.value || null
       };
+
+      const prevPlan = client.plan || {};
+      const mode = planModeHypertrophy.checked ? "hypertrophy" : planModeStrength.checked ? "strength" : "thier";
+
+      client.plan = {
+        mode,
+        equip: {
+          kb: planEquipKB.checked,
+          barbell: planEquipBB.checked,
+          bodyweight: planEquipBW.checked,
+          machine: planEquipMachine.checked
+        },
+        hypertrophyCycle: prevPlan.hypertrophyCycle || 0
+      };
+
       upsertClient(client);
+      updateModeBadge(client);
+
       const msg = document.createElement("div");
       msg.textContent = "Profiel opgeslagen.";
       msg.className = "small-note";
@@ -1574,7 +1867,6 @@ function generateSessionForClient(client, lastSession) {
       return { wrapper, panel };
     }
 
-    
     function renderSession(session) {
       outputEl.innerHTML = "";
 
@@ -1611,7 +1903,7 @@ function generateSessionForClient(client, lastSession) {
           corr.appendChild(focus);
         }
 
-        // Breathing-corrective: toon mini-tabs voor Circuit 1 en 2
+        // Breathing-corrective: mini-tabs
         if (session.corrective.source === "breathing" && Array.isArray(session.corrective.circuits)) {
           const tabsWrapper = document.createElement("div");
           tabsWrapper.className = "tabs";
@@ -1669,7 +1961,7 @@ function generateSessionForClient(client, lastSession) {
             "Volgens de Breathing-hiërarchie: SFMA-movement is voldoende, ademhaling is nu de eerste prioriteit.";
           corr.appendChild(extra);
         } else {
-          // Standaard FMS-corrective: eenvoudige lijst
+          // Standaard FMS-corrective
           const list = document.createElement("ul");
           list.style.margin = "0.45rem 0 0";
           list.style.paddingLeft = "1.1rem";
@@ -1683,6 +1975,37 @@ function generateSessionForClient(client, lastSession) {
       }
       outputEl.appendChild(corr);
 
+      // Opener: TGU als er geen corrective is
+      if (!session.corrective) {
+        const opener = document.createElement("div");
+        opener.className = "output-block";
+        const h = document.createElement("h4");
+        h.textContent = "Opener – 10 min Quality Turkish Get-Up";
+        opener.appendChild(h);
+        const note = document.createElement("div");
+        note.className = "small-note";
+        note.textContent = "1 rep per zijde per minuut · techniek en controle boven gewicht · stop bij techniekverlies.";
+        opener.appendChild(note);
+        outputEl.appendChild(opener);
+      }
+
+      // Barbell main lift (Kracht-modus)
+      if (session.mode === "strength" && session.barbellMain) {
+        const bb = document.createElement("div");
+        bb.className = "output-block";
+        const h = document.createElement("h4");
+        h.textContent = "Barbell Main Lift – Kracht";
+        bb.appendChild(h);
+        const note = document.createElement("div");
+        note.className = "small-note";
+        note.textContent = "3–5 sets × 3–5 herhalingen · focus op kwaliteit, spanning en techniek.";
+        bb.appendChild(note);
+        const line = document.createElement("div");
+        line.innerHTML = '<span class="pill">Barbell</span> ' + session.barbellMain.name;
+        bb.appendChild(line);
+        outputEl.appendChild(bb);
+      }
+
       // Main circuit
       const main = document.createElement("div");
       main.className = "output-block";
@@ -1691,7 +2014,7 @@ function generateSessionForClient(client, lastSession) {
       main.appendChild(mainTitle);
       const mainNote = document.createElement("div");
       mainNote.className = "small-note";
-      mainNote.textContent = "3–5 rondes · 5–7 herhalingen per oefening";
+      mainNote.textContent = session.repMainNote || "3–5 rondes · 5–7 herhalingen per oefening";
       main.appendChild(mainNote);
 
       if (!session.main.length) {
@@ -1700,11 +2023,43 @@ function generateSessionForClient(client, lastSession) {
         msg.textContent = "Geen main-oefeningen beschikbaar.";
         main.appendChild(msg);
       } else {
-        session.main.forEach(item => {
-          const div = document.createElement("div");
-          div.innerHTML = '<span class="pill">' + item.slot + '</span> ' + item.ex.name;
-          main.appendChild(div);
-        });
+        if (session.mode === "hypertrophy") {
+          // Squat/Hinge los, Push/Pull als superset
+          let squat = session.main.find(i => i.slot === "Squat");
+          let hinge = session.main.find(i => i.slot === "Hinge");
+          let push = session.main.find(i => i.slot === "Push");
+          let pull = session.main.find(i => i.slot === "Pull");
+
+          if (squat) {
+            const div = document.createElement("div");
+            div.innerHTML = '<span class="pill">Squat</span> ' + squat.ex.name;
+            main.appendChild(div);
+          }
+          if (hinge) {
+            const div = document.createElement("div");
+            div.innerHTML = '<span class="pill">Hinge</span> ' + hinge.ex.name;
+            main.appendChild(div);
+          }
+          if (push || pull) {
+            const div = document.createElement("div");
+            let text = "";
+            if (push && pull) {
+              text = '<span class="pill">Superset Push/Pull</span> ' + push.ex.name + " / " + pull.ex.name;
+            } else if (push) {
+              text = '<span class="pill">Push</span> ' + push.ex.name;
+            } else if (pull) {
+              text = '<span class="pill">Pull</span> ' + pull.ex.name;
+            }
+            div.innerHTML = text;
+            main.appendChild(div);
+          }
+        } else {
+          session.main.forEach(item => {
+            const div = document.createElement("div");
+            div.innerHTML = '<span class="pill">' + item.slot + '</span> ' + item.ex.name;
+            main.appendChild(div);
+          });
+        }
       }
       outputEl.appendChild(main);
 
@@ -1728,35 +2083,61 @@ function generateSessionForClient(client, lastSession) {
       }
       outputEl.appendChild(intermAcc.wrapper);
 
-      // Advanced circuit (accordion, default closed)
-      const advAcc = createAccordionBlock(
-        "Advanced Circuit",
-        "1–2 rondes · 5–7 herhalingen · Secondary Push/Pull + Club/Mace",
-        false
-      );
-      if (!session.advanced.secondaryPush && !session.advanced.secondaryPull && !session.advanced.clubMace) {
-        const msg = document.createElement("div");
-        msg.className = "muted";
-        msg.textContent = "Geen advanced-oefeningen beschikbaar.";
-        advAcc.panel.appendChild(msg);
-      } else {
-        if (session.advanced.secondaryPush) {
-          const div = document.createElement("div");
-          div.innerHTML = '<span class="pill">Secondary Push</span> ' + session.advanced.secondaryPush.name;
-          advAcc.panel.appendChild(div);
+      // Advanced circuit (geen advanced bij Kracht)
+      if (session.mode !== "strength") {
+        let subtitle = "1–2 rondes · 5–7 herhalingen · Secondary Push/Pull + Club/Mace";
+        if (session.mode === "hypertrophy") {
+          subtitle = "2–3 rondes · 8–15 herhalingen · Biceps + Triceps isolatie";
         }
-        if (session.advanced.secondaryPull) {
-          const div = document.createElement("div");
-          div.innerHTML = '<span class="pill">Secondary Pull</span> ' + session.advanced.secondaryPull.name;
-          advAcc.panel.appendChild(div);
+        const advAcc = createAccordionBlock(
+          "Advanced Circuit",
+          subtitle,
+          false
+        );
+
+        if (
+          !session.advanced.secondaryPush &&
+          !session.advanced.secondaryPull &&
+          !session.advanced.clubMace &&
+          !session.advanced.bicepsIso &&
+          !session.advanced.tricepsIso
+        ) {
+          const msg = document.createElement("div");
+          msg.className = "muted";
+          msg.textContent = "Geen advanced-oefeningen beschikbaar.";
+          advAcc.panel.appendChild(msg);
+        } else {
+          if (session.mode === "thier") {
+            if (session.advanced.secondaryPush) {
+              const div = document.createElement("div");
+              div.innerHTML = '<span class="pill">Secondary Push</span> ' + session.advanced.secondaryPush.name;
+              advAcc.panel.appendChild(div);
+            }
+            if (session.advanced.secondaryPull) {
+              const div = document.createElement("div");
+              div.innerHTML = '<span class="pill">Secondary Pull</span> ' + session.advanced.secondaryPull.name;
+              advAcc.panel.appendChild(div);
+            }
+            if (session.advanced.clubMace) {
+              const div = document.createElement("div");
+              div.innerHTML = '<span class="pill">Club/Mace</span> ' + session.advanced.clubMace.name;
+              advAcc.panel.appendChild(div);
+            }
+          } else if (session.mode === "hypertrophy") {
+            if (session.advanced.bicepsIso) {
+              const div = document.createElement("div");
+              div.innerHTML = '<span class="pill">Biceps isolatie</span> ' + session.advanced.bicepsIso.name;
+              advAcc.panel.appendChild(div);
+            }
+            if (session.advanced.tricepsIso) {
+              const div = document.createElement("div");
+              div.innerHTML = '<span class="pill">Triceps isolatie</span> ' + session.advanced.tricepsIso.name;
+              advAcc.panel.appendChild(div);
+            }
+          }
         }
-        if (session.advanced.clubMace) {
-          const div = document.createElement("div");
-          div.innerHTML = '<span class="pill">Club/Mace</span> ' + session.advanced.clubMace.name;
-          advAcc.panel.appendChild(div);
-        }
+        outputEl.appendChild(advAcc.wrapper);
       }
-      outputEl.appendChild(advAcc.wrapper);
 
       // Finisher
       const fin = document.createElement("div");
@@ -1766,13 +2147,17 @@ function generateSessionForClient(client, lastSession) {
       fin.appendChild(finTitle);
       const finNote = document.createElement("div");
       finNote.className = "small-note";
-      finNote.textContent = "Ballistics / Club / Mace: 5–20 herhalingen";
+      if (session.mode === "strength") {
+        finNote.textContent = "Kracht-modus: geen finisher (bewaar energie voor herstel en volgende sessies).";
+      } else {
+        finNote.textContent = "Ballistics / Club / Mace: 5–20 herhalingen, afhankelijk van doel en belasting.";
+      }
       fin.appendChild(finNote);
 
       if (!session.finisher || !session.finisher.type || !session.finisher.ex) {
         const msg = document.createElement("div");
         msg.className = "muted";
-        msg.textContent = "Geen finisher mogelijk met huidige FMS.";
+        msg.textContent = "Geen finisher mogelijk met huidige FMS/apparatuur of uitgeschakeld door modus.";
         fin.appendChild(msg);
       } else {
         const label = session.finisher.type === "A" ? "A · Ballistic Pulls" :
@@ -1801,12 +2186,11 @@ function generateSessionForClient(client, lastSession) {
         outputEl.appendChild(notes);
       }
 
-      // Scroll into view on small screens
       if (window.innerWidth < 768) {
         outputEl.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     }
-    
+
     generateBtn.addEventListener("click", () => {
       const id = clientSelect.value;
       const client = getClientById(id);
@@ -1824,13 +2208,24 @@ function generateSessionForClient(client, lastSession) {
         advancedNames: [
           session.advanced.secondaryPush && session.advanced.secondaryPush.name,
           session.advanced.secondaryPull && session.advanced.secondaryPull.name,
-          session.advanced.clubMace && session.advanced.clubMace.name
+          session.advanced.clubMace && session.advanced.clubMace.name,
+          session.advanced.bicepsIso && session.advanced.bicepsIso.name,
+          session.advanced.tricepsIso && session.advanced.tricepsIso.name
         ].filter(Boolean),
         finisherName: session.finisher && session.finisher.ex ? session.finisher.ex.name : null
       };
 
       client.lastSession = newLastSession;
+
+      // Hypertrofie-cyclus ophogen als modus hypertrofie is
+      const plan = client.plan || { mode: "thier", equip: { kb: true }, hypertrophyCycle: 0 };
+      if (plan.mode === "hypertrophy") {
+        plan.hypertrophyCycle = (plan.hypertrophyCycle || 0) + 1;
+      }
+      client.plan = plan;
+
       upsertClient(client);
+      updateModeBadge(client);
 
       renderSession(session);
     });
