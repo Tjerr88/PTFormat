@@ -769,6 +769,18 @@
 
   <script>
     const STORAGE_KEY = "pt_fms_clients_v10";
+    // --- Date helpers (local, not UTC) ---
+    function pad2(n) { return String(n).padStart(2, "0"); }
+    function localDateStr(d = new Date()) {
+      return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
+    }
+    function addDaysLocal(dateStr, deltaDays) {
+      const [y, m, d] = dateStr.split("-").map(Number);
+      const dt = new Date(y, m - 1, d);
+      dt.setDate(dt.getDate() + deltaDays);
+      return localDateStr(dt);
+    }
+
 
     function loadClients() {
       try {
@@ -1212,7 +1224,7 @@
 
     function randomChoice(arr) {
       if (!arr.length) return null;
-      const idx = Math.floor(Math.random() * Math.random() * arr.length);
+      const idx = Math.floor(Math.random() * arr.length);
       return arr[idx];
     }
 
@@ -1699,6 +1711,7 @@
       planEquipMachine.checked = !!equip.machine;
 
       updateModeBadge(client);
+      restoreTodaySession(client);
     }
 
     addClientBtn.addEventListener("click", () => {
@@ -1866,6 +1879,17 @@
       wrapper.appendChild(panel);
       return { wrapper, panel };
     }
+
+    
+    function restoreTodaySession(client) {
+      const today = localDateStr();
+      if (client && client.currentSession && client.currentSession.date === today && client.currentSession.session) {
+        renderSession(client.currentSession.session);
+      } else {
+        outputEl.innerHTML = "";
+      }
+    }
+
 
     function renderSession(session) {
       outputEl.innerHTML = "";
@@ -2199,10 +2223,17 @@
         return;
       }
 
-      const lastSession = client.lastSession || null;
+      const today = localDateStr();
+      const yesterday = addDaysLocal(today, -1);
+
+      // Alleen anti-repeat t.o.v. 'gisteren' (niet per se t.o.v. de laatste sessie als die ouder is).
+      const lastSession = (client.lastSession && client.lastSession.date === yesterday) ? client.lastSession : null;
+
       const session = generateSessionForClient(client, lastSession);
 
+      // Snapshot voor anti-repeat (bewaar als 'gisteren' voor morgen).
       const newLastSession = {
+        date: today,
         mainNames: session.main.map(item => item.ex.name),
         intermediateNames: session.intermediate.map(item => item.ex.name),
         advancedNames: [
@@ -2216,6 +2247,9 @@
       };
 
       client.lastSession = newLastSession;
+
+      // Huidige sessie opslaan zodat refresh/tab sluiten niet alles wist (per cliënt, per dag).
+      client.currentSession = { date: today, session };
 
       // Hypertrofie-cyclus ophogen als modus hypertrofie is
       const plan = client.plan || { mode: "thier", equip: { kb: true }, hypertrophyCycle: 0 };
