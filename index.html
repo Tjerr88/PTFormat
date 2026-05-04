@@ -218,6 +218,29 @@
       margin-bottom: 0.15rem;
       color: #9ca3af;
     }
+    .exercise-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.35rem;
+    }
+    .exercise-row-main {
+      flex: 1 1 240px;
+      min-width: 0;
+    }
+    .weight-field {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      color: #9ca3af;
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+    .weight-field input[type="number"] {
+      width: 5.4rem;
+    }
     .small-note {
       font-size: 0.75rem;
       color: #6b7280;
@@ -2270,6 +2293,620 @@
       renderClientOptions();
       outputEl.innerHTML = "";
     });
+
+    const DEFAULT_PLAN = Object.freeze({
+      mode: "thier",
+      equip: { kb: true, barbell: false, bodyweight: false, machine: false },
+      hypertrophyCycle: 0
+    });
+
+    const FMS_NUMBER_FIELDS = { ASLR: fmsASLR, SM: fmsSM, RS: fmsRS, TSPU: fmsTSPU, ILL: fmsILL, HS: fmsHS, DSQ: fmsDSQ, hsHeight, ankleCm, handLength };
+    const FMS_BOOLEAN_FIELDS = { shoulderPain, tspuPain, rsPain };
+    const BREATHING_FIELDS = { q1: breathQ1, q2: breathQ2, q3: breathQ3, frcHold: breathFRC, tlcHold: breathTLC };
+    const SFMA_FIELDS = {
+      cFlex: sfmaCFlex,
+      cExt: sfmaCExt,
+      cRotR: sfmaCRotR,
+      cRotL: sfmaCRotL,
+      ue1R: sfmaUE1R,
+      ue1L: sfmaUE1L,
+      ue2R: sfmaUE2R,
+      ue2L: sfmaUE2L,
+      multiFlex: sfmaFlex,
+      multiExt: sfmaExt,
+      multiRotR: sfmaRotR,
+      multiRotL: sfmaRotL,
+      singleLegR: sfmaSingleR,
+      singleLegL: sfmaSingleL,
+      deepSquat: sfmaDeep
+    };
+
+    function uid() {
+      if (window.crypto && typeof window.crypto.randomUUID === "function") {
+        return "c_" + window.crypto.randomUUID();
+      }
+      return "c_" + Math.random().toString(36).slice(2);
+    }
+
+    function createDefaultPlan() {
+      return {
+        mode: DEFAULT_PLAN.mode,
+        equip: { ...DEFAULT_PLAN.equip },
+        hypertrophyCycle: DEFAULT_PLAN.hypertrophyCycle
+      };
+    }
+
+    function clearElement(node) {
+      node.replaceChildren();
+    }
+
+    function createEl(tag, options = {}) {
+      const el = document.createElement(tag);
+      if (options.className) el.className = options.className;
+      if (options.text !== undefined) el.textContent = options.text;
+      if (options.type) el.type = options.type;
+      if (options.id) el.id = options.id;
+      return el;
+    }
+
+    function createPill(text) {
+      return createEl("span", { className: "pill", text });
+    }
+
+    function appendPillLine(container, pillLabel, content) {
+      const line = createEl("div");
+      line.append(createPill(pillLabel), document.createTextNode(" " + content));
+      container.appendChild(line);
+    }
+
+    function createExerciseWeightKey(exerciseName) {
+      return String(exerciseName || "").trim();
+    }
+
+    function getStoredExerciseWeight(client, exerciseName) {
+      const key = createExerciseWeightKey(exerciseName);
+      if (!client || !key) return "";
+      return client.exerciseWeights && client.exerciseWeights[key] !== undefined
+        ? String(client.exerciseWeights[key])
+        : "";
+    }
+
+    function persistExerciseWeight(exerciseName, rawValue) {
+      const client = getSelectedClient();
+      const key = createExerciseWeightKey(exerciseName);
+      if (!client || !key) return;
+
+      client.exerciseWeights = client.exerciseWeights || {};
+      const value = String(rawValue || "").trim();
+
+      if (value) client.exerciseWeights[key] = value;
+      else delete client.exerciseWeights[key];
+
+      upsertClient(client);
+    }
+
+    function appendExerciseLine(container, pillLabel, exerciseName) {
+      const client = getSelectedClient();
+      const row = createEl("div", { className: "exercise-row" });
+      const main = createEl("div", { className: "exercise-row-main" });
+      const weightField = createEl("label", { className: "weight-field" });
+      const input = createEl("input", { type: "number" });
+
+      input.min = "0";
+      input.step = "0.5";
+      input.inputMode = "decimal";
+      input.placeholder = "kg";
+      input.value = getStoredExerciseWeight(client, exerciseName);
+      input.setAttribute("aria-label", "Gewicht voor " + exerciseName);
+      input.addEventListener("change", () => persistExerciseWeight(exerciseName, input.value));
+
+      main.append(createPill(pillLabel), document.createTextNode(" " + exerciseName));
+      weightField.append(createEl("span", { text: "Gewicht" }), input, createEl("span", { text: "kg" }));
+      row.append(main, weightField);
+      container.appendChild(row);
+    }
+
+    function appendMutedMessage(container, text) {
+      container.appendChild(createEl("div", { className: "muted", text }));
+    }
+
+    function createList(items) {
+      const list = createEl("ul");
+      list.style.margin = "0.45rem 0 0";
+      list.style.paddingLeft = "1.1rem";
+      items.forEach(item => list.appendChild(createEl("li", { text: item })));
+      return list;
+    }
+
+    function setAccordionState(wrapper, panel, expanded) {
+      wrapper.classList.toggle("collapsed", !expanded);
+      panel.classList.toggle("collapsed", !expanded);
+    }
+
+    function applyTabState(tabButtons, tabPanels, targetId) {
+      tabButtons.forEach(btn => {
+        const isActive = (btn.dataset.target || btn.dataset.tabTarget) === targetId;
+        btn.classList.toggle("active", isActive);
+        btn.setAttribute("aria-selected", String(isActive));
+      });
+      tabPanels.forEach(panel => {
+        panel.style.display = panel.id === targetId ? "block" : "none";
+      });
+    }
+
+    function readNullableNumber(input) {
+      return input.value === "" ? null : Number(input.value);
+    }
+
+    function readNullableString(input) {
+      return input.value || null;
+    }
+
+    function readNumberMap(fieldMap) {
+      return Object.fromEntries(Object.entries(fieldMap).map(([key, input]) => [key, readNullableNumber(input)]));
+    }
+
+    function readCheckboxMap(fieldMap) {
+      return Object.fromEntries(Object.entries(fieldMap).map(([key, input]) => [key, !!input.checked]));
+    }
+
+    function readStringMap(fieldMap) {
+      return Object.fromEntries(Object.entries(fieldMap).map(([key, input]) => [key, readNullableString(input)]));
+    }
+
+    function populateNumberMap(fieldMap, values = {}) {
+      Object.entries(fieldMap).forEach(([key, input]) => {
+        input.value = values[key] ?? "";
+      });
+    }
+
+    function populateCheckboxMap(fieldMap, values = {}) {
+      Object.entries(fieldMap).forEach(([key, input]) => {
+        input.checked = !!values[key];
+      });
+    }
+
+    function populateStringMap(fieldMap, values = {}) {
+      Object.entries(fieldMap).forEach(([key, input]) => {
+        input.value = values[key] ?? "";
+      });
+    }
+
+    function getSelectedClient() {
+      return getClientById(clientSelect.value);
+    }
+
+    function showTransientOutputMessage(text) {
+      const msg = createEl("div", { className: "small-note", text });
+      outputEl.replaceChildren(msg);
+      window.setTimeout(() => {
+        if (outputEl.contains(msg)) outputEl.removeChild(msg);
+      }, 1500);
+    }
+
+    function renderClientOptions(selectedId = clientSelect.value) {
+      const clients = loadClients();
+      clearElement(clientSelect);
+
+      if (!clients.length) {
+        const opt = createEl("option", { text: "-- geen clienten --" });
+        opt.value = "";
+        clientSelect.appendChild(opt);
+        activeClientBadge.textContent = "Geen client geselecteerd";
+        activeClientBadge.classList.remove("badge-accent");
+        clearAllAssessmentFields();
+        updateModeBadge(null);
+        clearElement(outputEl);
+        return;
+      }
+
+      clients.forEach(client => {
+        const option = createEl("option", { text: client.name });
+        option.value = client.id;
+        clientSelect.appendChild(option);
+      });
+
+      clientSelect.value = clients.some(client => client.id === selectedId) ? selectedId : clients[0].id;
+      updateFieldsForCurrentClient();
+    }
+
+    function clearAllAssessmentFields() {
+      populateNumberMap(FMS_NUMBER_FIELDS);
+      fmsAnkle.value = "green";
+      populateCheckboxMap(FMS_BOOLEAN_FIELDS);
+      populateNumberMap(BREATHING_FIELDS);
+      populateStringMap(SFMA_FIELDS);
+      planModeThier.checked = true;
+      planModeHypertrophy.checked = false;
+      planModeStrength.checked = false;
+      planEquipKB.checked = true;
+      planEquipBB.checked = false;
+      planEquipBW.checked = false;
+      planEquipMachine.checked = false;
+    }
+
+    function updateModeBadge(client) {
+      if (!client || !client.plan) {
+        modeBadge.textContent = "Modus: Thier · KB-only";
+        return;
+      }
+
+      const mode = client.plan.mode || "thier";
+      const equip = client.plan.equip || {};
+      const modeLabel = mode === "hypertrophy" ? "Hypertrofie" : mode === "strength" ? "Kracht" : "Thier";
+      const equipmentLabels = [];
+      if (equip.kb !== false) equipmentLabels.push("KB");
+      if (equip.barbell) equipmentLabels.push("BB");
+      if (equip.bodyweight) equipmentLabels.push("BW");
+      if (equip.machine) equipmentLabels.push("Machine");
+      modeBadge.textContent = "Modus: " + modeLabel + " · " + (equipmentLabels.length ? equipmentLabels.join(" + ") : "geen apparatuur gekozen");
+    }
+
+    function updateFieldsForCurrentClient() {
+      const client = getSelectedClient();
+      if (!client) {
+        activeClientBadge.textContent = "Geen client geselecteerd";
+        activeClientBadge.classList.remove("badge-accent");
+        clearAllAssessmentFields();
+        updateModeBadge(null);
+        clearElement(outputEl);
+        return;
+      }
+
+      activeClientBadge.textContent = client.name;
+      activeClientBadge.classList.add("badge-accent");
+
+      const fms = client.fms || {};
+      populateNumberMap(FMS_NUMBER_FIELDS, fms);
+      fmsAnkle.value = fms.ankle ?? "green";
+      populateCheckboxMap(FMS_BOOLEAN_FIELDS, fms);
+      populateNumberMap(BREATHING_FIELDS, client.breathing || {});
+      populateStringMap(SFMA_FIELDS, client.sfma || {});
+
+      const plan = client.plan || createDefaultPlan();
+      const equip = plan.equip || {};
+      planModeThier.checked = plan.mode === "thier";
+      planModeHypertrophy.checked = plan.mode === "hypertrophy";
+      planModeStrength.checked = plan.mode === "strength";
+      planEquipKB.checked = equip.kb !== false;
+      planEquipBB.checked = !!equip.barbell;
+      planEquipBW.checked = !!equip.bodyweight;
+      planEquipMachine.checked = !!equip.machine;
+
+      updateModeBadge(client);
+      restoreTodaySession(client);
+    }
+
+    function createAccordionBlock(title, subtitle, initiallyOpen = true) {
+      const wrapper = createEl("div", { className: "output-block accordion-section" });
+      const headerBtn = createEl("button", { className: "accordion-header", type: "button" });
+      const left = createEl("div");
+      left.appendChild(createEl("div", { className: "accordion-title", text: title }));
+      if (subtitle) left.appendChild(createEl("div", { className: "accordion-subtitle", text: subtitle }));
+      headerBtn.append(left, createEl("span", { className: "chevron", text: "▾" }));
+
+      const panel = createEl("div", { className: "accordion-panel" });
+      setAccordionState(wrapper, panel, initiallyOpen);
+
+      headerBtn.addEventListener("click", () => {
+        setAccordionState(wrapper, panel, panel.classList.contains("collapsed"));
+      });
+
+      wrapper.append(headerBtn, panel);
+      return { wrapper, panel };
+    }
+
+    function createBreathingCircuitTabs(circuits) {
+      const tabsWrapper = createEl("div", { className: "tabs" });
+      const panelsWrapper = createEl("div");
+      const tabButtons = [];
+      const tabPanels = [];
+
+      circuits.forEach((circuit, idx) => {
+        const targetId = "breathCircuit_" + (idx + 1);
+        const btn = createEl("button", {
+          className: "tab-btn" + (idx === 0 ? " active" : ""),
+          text: circuit.label || ("Circuit " + (idx + 1)),
+          type: "button"
+        });
+        btn.dataset.target = targetId;
+        tabsWrapper.appendChild(btn);
+        tabButtons.push(btn);
+
+        const panel = createEl("div", { className: "tab-panel", id: targetId });
+        panel.style.display = idx === 0 ? "block" : "none";
+        panel.appendChild(createList(circuit.drills || []));
+        panelsWrapper.appendChild(panel);
+        tabPanels.push(panel);
+      });
+
+      tabButtons.forEach(btn => {
+        btn.addEventListener("click", () => applyTabState(tabButtons, tabPanels, btn.dataset.target));
+      });
+
+      return { tabsWrapper, panelsWrapper };
+    }
+
+    function restoreTodaySession(client) {
+      const today = localDateStr();
+      if (client && client.currentSession && client.currentSession.date === today && client.currentSession.session) {
+        renderSession(client.currentSession.session);
+        return;
+      }
+      clearElement(outputEl);
+    }
+
+    function renderSession(session) {
+      clearElement(outputEl);
+
+      const corr = createEl("div", { className: "output-block" });
+      corr.appendChild(createEl("h4", { text: "Corrective" }));
+      corr.appendChild(createEl("div", {
+        className: "small-note",
+        text: "Breathing: " + (session.breathingStatus || "n.v.t.") + " · Movement (SFMA): " + (session.movementStatus || "n.v.t.")
+      }));
+
+      if (!session.corrective) {
+        appendMutedMessage(corr, "Geen duidelijke FMS-prioriteit gevonden. Kies correctives op basis van doel, observaties en breathing-/SFMA-status.");
+      } else {
+        const headerLine = createEl("div");
+        headerLine.appendChild(createPill(session.corrective.pattern));
+        corr.appendChild(headerLine);
+
+        if (session.corrective.focus) {
+          corr.appendChild(createEl("div", { className: "small-note", text: session.corrective.focus }));
+        }
+
+        if (session.corrective.source === "breathing" && Array.isArray(session.corrective.circuits)) {
+          const breathingTabs = createBreathingCircuitTabs(session.corrective.circuits);
+          corr.append(breathingTabs.tabsWrapper, breathingTabs.panelsWrapper);
+          corr.appendChild(createEl("div", {
+            className: "small-note",
+            text: "Volgens de Breathing-hierarchie: SFMA-movement is voldoende, ademhaling is nu de eerste prioriteit."
+          }));
+        } else {
+          corr.appendChild(createList(session.corrective.drills || []));
+        }
+      }
+      outputEl.appendChild(corr);
+
+      if (!session.corrective) {
+        const opener = createEl("div", { className: "output-block" });
+        opener.appendChild(createEl("h4", { text: "Opener - 10 min Quality Turkish Get-Up" }));
+        opener.appendChild(createEl("div", {
+          className: "small-note",
+          text: "1 rep per zijde per minuut · techniek en controle boven gewicht · stop bij techniekverlies."
+        }));
+        outputEl.appendChild(opener);
+      }
+
+      if (session.mode === "strength" && session.barbellMain) {
+        const bb = createEl("div", { className: "output-block" });
+        bb.appendChild(createEl("h4", { text: "Barbell Main Lift - Kracht" }));
+        bb.appendChild(createEl("div", {
+          className: "small-note",
+          text: "3-5 sets x 3-5 herhalingen · focus op kwaliteit, spanning en techniek."
+        }));
+        appendExerciseLine(bb, "Barbell", session.barbellMain.name);
+        outputEl.appendChild(bb);
+      }
+
+      const main = createEl("div", { className: "output-block" });
+      main.appendChild(createEl("h4", { text: "Main Circuit" }));
+      main.appendChild(createEl("div", {
+        className: "small-note",
+        text: session.repMainNote || "3-5 rondes · 5-7 herhalingen per oefening"
+      }));
+
+      if (!session.main.length) {
+        appendMutedMessage(main, "Geen main-oefeningen beschikbaar.");
+      } else if (session.mode === "hypertrophy") {
+        const squat = session.main.find(item => item.slot === "Squat");
+        const hinge = session.main.find(item => item.slot === "Hinge");
+        const push = session.main.find(item => item.slot === "Push");
+        const pull = session.main.find(item => item.slot === "Pull");
+
+        if (squat) appendExerciseLine(main, "Squat", squat.ex.name);
+        if (hinge) appendExerciseLine(main, "Hinge", hinge.ex.name);
+        if (push && pull) {
+          appendExerciseLine(main, "Push", push.ex.name);
+          appendExerciseLine(main, "Pull", pull.ex.name);
+        } else if (push) appendExerciseLine(main, "Push", push.ex.name);
+        else if (pull) appendExerciseLine(main, "Pull", pull.ex.name);
+      } else {
+        session.main.forEach(item => appendExerciseLine(main, item.slot, item.ex.name));
+      }
+      outputEl.appendChild(main);
+
+      const intermAcc = createAccordionBlock(
+        "Intermediate Circuit",
+        "2-3 rondes · 5-7 herhalingen · Lunge · Anti-rotatie · Rotatie",
+        false
+      );
+      if (!session.intermediate.length) {
+        appendMutedMessage(intermAcc.panel, "Geen intermediate-oefeningen beschikbaar.");
+      } else {
+        session.intermediate.forEach(item => appendExerciseLine(intermAcc.panel, item.slot, item.ex.name));
+      }
+      outputEl.appendChild(intermAcc.wrapper);
+
+      if (session.mode !== "strength") {
+        const subtitle = session.mode === "hypertrophy"
+          ? "2-3 rondes · 8-15 herhalingen · Biceps + Triceps isolatie"
+          : "1-2 rondes · 5-7 herhalingen · Secondary Push/Pull + Club/Mace";
+        const advAcc = createAccordionBlock("Advanced Circuit", subtitle, false);
+
+        if (
+          !session.advanced.secondaryPush &&
+          !session.advanced.secondaryPull &&
+          !session.advanced.clubMace &&
+          !session.advanced.bicepsIso &&
+          !session.advanced.tricepsIso
+        ) {
+          appendMutedMessage(advAcc.panel, "Geen advanced-oefeningen beschikbaar.");
+        } else if (session.mode === "thier") {
+          if (session.advanced.secondaryPush) appendExerciseLine(advAcc.panel, "Secondary Push", session.advanced.secondaryPush.name);
+          if (session.advanced.secondaryPull) appendExerciseLine(advAcc.panel, "Secondary Pull", session.advanced.secondaryPull.name);
+          if (session.advanced.clubMace) appendExerciseLine(advAcc.panel, "Club/Mace", session.advanced.clubMace.name);
+        } else if (session.mode === "hypertrophy") {
+          if (session.advanced.bicepsIso) appendExerciseLine(advAcc.panel, "Biceps isolatie", session.advanced.bicepsIso.name);
+          if (session.advanced.tricepsIso) appendExerciseLine(advAcc.panel, "Triceps isolatie", session.advanced.tricepsIso.name);
+        }
+        outputEl.appendChild(advAcc.wrapper);
+      }
+
+      const fin = createEl("div", { className: "output-block" });
+      fin.appendChild(createEl("h4", { text: "Finisher" }));
+      fin.appendChild(createEl("div", {
+        className: "small-note",
+        text: session.mode === "strength"
+          ? "Kracht-modus: geen finisher (bewaar energie voor herstel en volgende sessies)."
+          : "Ballistics / Club / Mace: 5-20 herhalingen, afhankelijk van doel en belasting."
+      }));
+
+      if (!session.finisher || !session.finisher.type || !session.finisher.ex) {
+        appendMutedMessage(fin, "Geen finisher mogelijk met huidige FMS/apparatuur of uitgeschakeld door modus.");
+      } else {
+        const label = session.finisher.type === "A"
+          ? "A · Ballistic Pulls"
+          : session.finisher.type === "B"
+            ? "B · Ballistic Pushes"
+            : "C · Carries";
+        appendExerciseLine(fin, label, session.finisher.ex.name);
+      }
+      outputEl.appendChild(fin);
+
+      if (session.notes && session.notes.length) {
+        const notes = createEl("div", { className: "output-block" });
+        notes.appendChild(createEl("h4", { text: "Notities / beperkingen" }));
+        session.notes.forEach(note => {
+          notes.appendChild(createEl("div", { className: "muted", text: "• " + note }));
+        });
+        outputEl.appendChild(notes);
+      }
+
+      if (window.innerWidth < 768) {
+        outputEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+
+    function handleAddClientClick(event) {
+      event.stopImmediatePropagation();
+      const willOpen = newClientRow.style.display === "none";
+      newClientRow.style.display = willOpen ? "flex" : "none";
+      if (willOpen) newClientName.focus();
+    }
+
+    function handleSaveClientClick(event) {
+      event.stopImmediatePropagation();
+      const name = newClientName.value.trim();
+      if (!name) return;
+
+      const client = { id: uid(), name, fms: {}, breathing: {}, sfma: {}, plan: createDefaultPlan() };
+      upsertClient(client);
+      newClientName.value = "";
+      newClientRow.style.display = "none";
+      renderClientOptions(client.id);
+    }
+
+    function handleSaveProfileClick(event) {
+      event.stopImmediatePropagation();
+      const client = getSelectedClient();
+      if (!client) {
+        alert("Selecteer eerst een client of maak er een aan.");
+        return;
+      }
+
+      client.fms = { ...readNumberMap(FMS_NUMBER_FIELDS), ankle: fmsAnkle.value, ...readCheckboxMap(FMS_BOOLEAN_FIELDS) };
+      client.breathing = readNumberMap(BREATHING_FIELDS);
+      client.sfma = readStringMap(SFMA_FIELDS);
+
+      const prevPlan = client.plan || createDefaultPlan();
+      client.plan = {
+        mode: planModeHypertrophy.checked ? "hypertrophy" : planModeStrength.checked ? "strength" : "thier",
+        equip: {
+          kb: planEquipKB.checked,
+          barbell: planEquipBB.checked,
+          bodyweight: planEquipBW.checked,
+          machine: planEquipMachine.checked
+        },
+        hypertrophyCycle: prevPlan.hypertrophyCycle || 0
+      };
+
+      upsertClient(client);
+      updateModeBadge(client);
+      showTransientOutputMessage("Profiel opgeslagen.");
+    }
+
+    function handleGenerateClick(event) {
+      event.stopImmediatePropagation();
+      const client = getSelectedClient();
+      if (!client) {
+        alert("Selecteer eerst een client en sla het profiel op.");
+        return;
+      }
+
+      const today = localDateStr();
+      const yesterday = addDaysLocal(today, -1);
+      const lastSession = client.lastSession && client.lastSession.date === yesterday ? client.lastSession : null;
+      const session = generateSessionForClient(client, lastSession);
+
+      client.lastSession = {
+        date: today,
+        mainNames: session.main.map(item => item.ex.name),
+        intermediateNames: session.intermediate.map(item => item.ex.name),
+        advancedNames: [
+          session.advanced.secondaryPush && session.advanced.secondaryPush.name,
+          session.advanced.secondaryPull && session.advanced.secondaryPull.name,
+          session.advanced.clubMace && session.advanced.clubMace.name,
+          session.advanced.bicepsIso && session.advanced.bicepsIso.name,
+          session.advanced.tricepsIso && session.advanced.tricepsIso.name
+        ].filter(Boolean),
+        finisherName: session.finisher && session.finisher.ex ? session.finisher.ex.name : null
+      };
+
+      client.currentSession = { date: today, session };
+      client.plan = client.plan || createDefaultPlan();
+      if (client.plan.mode === "hypertrophy") {
+        client.plan.hypertrophyCycle = (client.plan.hypertrophyCycle || 0) + 1;
+      }
+
+      upsertClient(client);
+      updateModeBadge(client);
+      renderSession(session);
+    }
+
+    function handleClearStorageClick(event) {
+      event.stopImmediatePropagation();
+      if (!confirm("Weet je zeker dat je alle clientdata wilt verwijderen?")) return;
+      localStorage.removeItem(STORAGE_KEY);
+      renderClientOptions();
+      clearElement(outputEl);
+    }
+
+    function handleSettingsAccordionClick(event) {
+      const header = event.target.closest(".accordion-header-main");
+      if (!header) return;
+      event.stopImmediatePropagation();
+      setAccordionState(settingsAccordion, settingsPanel, settingsPanel.classList.contains("collapsed"));
+    }
+
+    function handleSettingsTabsClick(event) {
+      const button = event.target.closest(".tab-btn");
+      if (!button || !assessmentTabs.contains(button)) return;
+      event.stopImmediatePropagation();
+      const tabButtons = Array.from(assessmentTabs.querySelectorAll(".tab-btn"));
+      const tabPanels = Array.from(settingsPanel.querySelectorAll(".tab-panel"));
+      applyTabState(tabButtons, tabPanels, button.dataset.tabTarget || button.dataset.target);
+    }
+
+    addClientBtn.addEventListener("click", handleAddClientClick, true);
+    saveClientBtn.addEventListener("click", handleSaveClientClick, true);
+    saveFmsBtn.addEventListener("click", handleSaveProfileClick, true);
+    generateBtn.addEventListener("click", handleGenerateClick, true);
+    clearStorageBtn.addEventListener("click", handleClearStorageClick, true);
+    settingsAccordion.addEventListener("click", handleSettingsAccordionClick, true);
+    assessmentTabs.addEventListener("click", handleSettingsTabsClick, true);
 
     renderClientOptions();
   </script>
